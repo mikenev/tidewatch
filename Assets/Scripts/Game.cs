@@ -148,7 +148,7 @@ namespace Tidewatch {
     Ship SpawnShip(EnemyDef def, Lane lane, int w, float dist){
       var go = new GameObject(def.id); var s = go.AddComponent<Ship>(); s.Init(def, lane, w, dist);
       Ships.Add(s); alive[w]++;
-      if (def.boss) Debug.Log($"[TW] boss {def.id} spawned on lane {lane.id}");
+      if (def.boss){ GameEvents.Play("galleon_horn"); Debug.Log($"[TW] boss {def.id} spawned on lane {lane.id}"); }
       return s;
     }
     /// <summary>Dread Galleon: launch `count` ships at the parent's position (its own lane if their size may use it).</summary>
@@ -240,7 +240,7 @@ namespace Tidewatch {
       var from = Moving; CancelMove();
       if (!CanMove(from) || !to || to.defense || to.type != "buoy" || !Spend(Cfg.moveFee)) return;
       var d = from.defense; from.defense = null; to.defense = d; d.transform.SetParent(to.transform, false);
-      GameEvents.Play("build");
+      GameEvents.Play("ship_move");
       Debug.Log($"[TW] moved {d.def.id} from slot {from.index} to slot {to.index} fee={Cfg.moveFee} gold={Gold}");
       Select(to);
     }

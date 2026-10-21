@@ -9,7 +9,7 @@ namespace Tidewatch {
     public int UpgradeCost => CanUpgrade ? def.levels[level + 1].cost : 0;
     public bool IsShip => def.slot == "buoy";
     public bool Disabled => Time.time < disabledUntil;
-    float cd, disabledUntil = -1f; Transform aim; GameObject visual, disabledMark; SpriteRenderer auraRing;
+    float cd, castCd, disabledUntil = -1f; Transform aim; GameObject visual, disabledMark; SpriteRenderer auraRing;   // Net Tender range circle
 
     public void Init(DefenseDef d){ def = d; level = 0; spent = d.levels[0].cost; Rebuild(); }
     public void Upgrade(){ if (!CanUpgrade) return; level++; spent += L.cost; Rebuild(); }
@@ -61,7 +61,10 @@ namespace Tidewatch {
       bool off = Disabled; if (disabledMark.activeSelf != off) disabledMark.SetActive(off);
       if (off) return;
       if (def.IsAura){
-        foreach (var s in g.ShipsInRange(transform.position, L.range)) s.ApplySlow(L.slow, 0.15f);
+        var inRange = g.ShipsInRange(transform.position, L.range);
+        foreach (var s in inRange) s.ApplySlow(L.slow, 0.15f);
+        castCd -= Time.deltaTime;
+        if (inRange.Count > 0 && castCd <= 0f){ castCd = 1.5f; GameEvents.Play("net_cast"); }   // nets cast while ships are in the circle
         return;
       }
       var t = g.FindTarget(transform.position, L.range); if (!t) return;

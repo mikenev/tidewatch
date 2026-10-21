@@ -27,8 +27,10 @@ namespace Tidewatch {
       R("harbor_breach", "SFX/harbor_breach", 0.8f, 0.3f); R("coin", "SFX/coin", 0.5f, 0.1f);
       R("build", "SFX/build", 0.6f, 0.1f); R("upgrade", "SFX/upgrade", 0.6f, 0.1f); R("sell", "SFX/sell", 0.6f, 0.1f);
       R("wave_horn", "SFX/wave_horn", 0.7f, 1f); R("ui_click", "SFX/ui_click", 0.35f, 0.08f); R("ui_error", "SFX/ui_error", 0.5f, 0.2f);
-      R("mortar_fire", "SFX/mortar_fire|SFX/cannon_fire", 0.6f, 0.15f); R("chain_fire", "SFX/chain_fire|SFX/cannon_fire", 0.3f, 0.1f);
-      R("raft_blast", "SFX/raft_blast|SFX/harbor_breach", 0.7f, 0.2f); R("launch", "SFX/galleon_launch|SFX/wave_horn", 0.5f, 0.5f);
+      R("mortar_fire", "SFX/mortar_fire|SFX/cannon_fire", 0.6f, 0.15f); R("mortar_impact", "SFX/mortar_impact|SFX/ball_hit", 0.55f, 0.12f);
+      R("chain_fire", "SFX/chainshot_fire|SFX/cannon_fire", 0.4f, 0.1f); R("net_cast", "SFX/net_cast", 0.4f, 0.8f);
+      R("raft_blast", "SFX/fireraft_explode|SFX/harbor_breach", 0.75f, 0.2f); R("galleon_horn", "SFX/galleon_horn|SFX/wave_horn", 0.8f, 1f);
+      R("launch", "SFX/galleon_horn|SFX/wave_horn", 0.35f, 0.8f); R("ship_move", "SFX/ship_move|SFX/build", 0.6f, 0.2f);
       R("victory", "Music/victory_sting", 0.8f, 1f); R("defeat", "Music/defeat_sting", 0.8f, 1f);
     }
     AudioSource NewSource(bool loop){ var a = gameObject.AddComponent<AudioSource>(); a.playOnAwake = false; a.loop = loop; a.volume = 0; return a; }

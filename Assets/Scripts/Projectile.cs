@@ -21,7 +21,7 @@ namespace Tidewatch {
       if (splash){
         var g = Game.I;
         if (g) foreach (var s in g.ShipsInRange(aim, L.splash)) s.Damage(L.damage, L.pierce);
-        Fx.Splash(aim, L.splash);
+        Fx.Splash(aim, L.splash); GameEvents.Play("mortar_impact");
       } else if (target && !target.Dead){
         if (L.slow > 0f) target.ApplySlow(L.slow, L.slowTime);
         target.Damage(L.damage, L.pierce);
