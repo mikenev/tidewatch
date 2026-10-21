@@ -640,6 +640,40 @@
        "x": -7.6,
        "y": 0.0
       }
+     ],
+     "largePoints": [
+      {
+       "x": 10.4,
+       "y": -3.1
+      },
+      {
+       "x": 6.6,
+       "y": -3.1
+      },
+      {
+       "x": 5.6,
+       "y": -1.2
+      },
+      {
+       "x": 2.0,
+       "y": -2.6
+      },
+      {
+       "x": -0.6,
+       "y": -2.8
+      },
+      {
+       "x": -2.0,
+       "y": 0.2
+      },
+      {
+       "x": -4.5,
+       "y": -0.4
+      },
+      {
+       "x": -7.6,
+       "y": 0.0
+      }
      ]
     }
    ],
@@ -1420,15 +1454,15 @@
       {
        "enemy": "brig",
        "lane": "north",
-       "count": 4,
-       "interval": 2.6,
+       "count": 3,
+       "interval": 2.8,
        "delay": 0
       },
       {
        "enemy": "brig",
        "lane": "middle",
-       "count": 4,
-       "interval": 2.6,
+       "count": 3,
+       "interval": 2.8,
        "delay": 2
       },
       {
@@ -1446,21 +1480,21 @@
       {
        "enemy": "fireraft",
        "lane": "middle",
-       "count": 6,
+       "count": 5,
        "interval": 1.8,
        "delay": 0
       },
       {
        "enemy": "sloop",
        "lane": "north",
-       "count": 10,
+       "count": 9,
        "interval": 1.2,
        "delay": 2
       },
       {
        "enemy": "dinghy",
        "lane": "south_current",
-       "count": 16,
+       "count": 14,
        "interval": 0.45,
        "delay": 3
       }
@@ -1479,7 +1513,7 @@
       {
        "enemy": "brig",
        "lane": "middle",
-       "count": 5,
+       "count": 4,
        "interval": 2.4,
        "delay": 3
       },

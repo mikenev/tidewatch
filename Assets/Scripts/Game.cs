@@ -21,6 +21,9 @@ namespace Tidewatch {
     public readonly List<BuildSlot> Slots = new();
     public readonly List<Ship> Ships = new();
     readonly HashSet<string> onceLogs = new();
+    bool armoredHintShown;
+    /// <summary>One-off gameplay hint shown by the HUD until HintUntil (unscaled time).</summary>
+    public string Hint { get; private set; } public float HintUntil { get; private set; }
     /// <summary>Log a line once per island run (fog/current proofs for the smoke test without log spam).</summary>
     public void LogOnce(string key, string msg){ if (onceLogs.Add(key)) Debug.Log(msg); }
     public int Gold { get; private set; }
@@ -138,6 +141,8 @@ namespace Tidewatch {
       groupsLeft[w] = wd.groups.Length; spawningGroups += wd.groups.Length;
       foreach (var g in wd.groups) StartCoroutine(SpawnGroup(w, g));
       GameEvents.Play("wave_horn");
+      if (!armoredHintShown) foreach (var g in wd.groups){ var e = Cfg.Enemy(g.enemy); if (e != null && e.armor > 0f && !e.boss){
+        armoredHintShown = true; Hint = "Armored: use mortars or chain shot"; HintUntil = Time.unscaledTime + 6f; Debug.Log($"[TW] hint wave {w + 1}: {Hint}"); break; } }
       Debug.Log($"[TW] wave {w + 1}/{TotalWaves} started early={calledByPlayer} earlyBonus={bonus} gold={Gold}");
     }
     IEnumerator SpawnGroup(int w, SpawnGroup g){
@@ -159,6 +164,7 @@ namespace Tidewatch {
       return ok.Count == 0 ? null : ok[Random.Range(0, ok.Count)];
     }
     Ship SpawnShip(EnemyDef def, Lane lane, int w, float dist){
+      if (def.size == "large" && lane.Large != null) lane = lane.Large;   // size-specific path (keeps big hulls off islands)
       var go = new GameObject(def.id); var s = go.AddComponent<Ship>(); s.Init(def, lane, w, dist);
       Ships.Add(s); alive[w]++;
       if (lane.Current != 1f) LogOnce("cur" + lane.id + def.id, $"[TW] current lane={lane.id} x{lane.Current:0.##} {def.id} speed={s.Speed:0.##} base={def.speed:0.##}");
@@ -168,15 +174,15 @@ namespace Tidewatch {
     /// <summary>Dread Galleon: launch `count` ships at the parent's position (its own lane if their size may use it).</summary>
     public void Launch(Ship parent, string enemyId, int count){
       var def = Cfg.Enemy(enemyId); if (def == null || State != GameState.Playing) return;
-      var lane = parent.lane.Allows(def.size) ? parent.lane : LaneFor(def, null); if (lane == null) return;
-      float d0 = lane == parent.lane ? parent.dist : 0f;
+      var lane = parent.lane.Base.Allows(def.size) ? parent.lane.Base : LaneFor(def, null); if (lane == null) return;
+      float d0 = lane == parent.lane.Base ? Mathf.Clamp01(parent.dist / parent.lane.Length) * lane.Length : 0f;
       for (int i = 0; i < count; i++) SpawnShip(def, lane, parent.wave, Mathf.Clamp(d0 + 0.35f * (i - (count - 1) * 0.5f), 0f, lane.Length - 0.1f));
       GameEvents.Play("launch");
       Debug.Log($"[TW] {parent.def.id} launched {count} {def.id} hp={Mathf.Max(0, parent.hp):0}");
     }
     public void ShipSunk(Ship s){
       if (s.Dead) return; s.Dead = true; Ships.Remove(s); alive[s.wave]--;
-      AddGold(s.def.gold); GameEvents.Play("ship_sink"); s.Sink();
+      AddGold(s.def.gold); GameEvents.Play("ship_sink"); s.Sink(); Fx.Splash(s.transform.position, s.def.boss ? 1.2f : 0.5f);
       if (s.def.boss) Debug.Log($"[TW] boss {s.def.id} sunk gold={Gold} launches={s.Launches}");
     }
     public void ShipReachedHarbor(Ship s){

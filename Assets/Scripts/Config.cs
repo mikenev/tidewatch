@@ -20,7 +20,8 @@ namespace Tidewatch {
   [Serializable] public class IslandTint { public string island, tint; }
   [Serializable] public class Palette { public string sea, shallows, sand, grass, reef; }
   /// <summary>current: multiplies ship speed on this lane (0 or missing = 1).</summary>
-  [Serializable] public class LaneDef { public string id; public string[] sizes; public Vector2[] points; public float current; }
+  /// <summary>largePoints (optional): a nudged path used only by large ships, e.g. to keep the Galleon's hull off an island.</summary>
+  [Serializable] public class LaneDef { public string id; public string[] sizes; public Vector2[] points; public float current; public Vector2[] largePoints; }
   [Serializable] public class LandDef { public Vector2 pos; public float radius; }
   [Serializable] public class SlotDef { public string type; public Vector2 pos; }
   [Serializable] public class SpawnGroup { public string enemy, lane; public int count; public float interval, delay; }

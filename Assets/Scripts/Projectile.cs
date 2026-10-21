@@ -27,7 +27,7 @@ namespace Tidewatch {
         Fx.Splash(aim, L.splash); GameEvents.Play("mortar_impact");
       } else if (target && !target.Dead){
         if (L.slow > 0f) target.ApplySlow(L.slow, L.slowTime);
-        target.Damage(L.damage, L.pierce);
+        target.Damage(L.damage, L.pierce); Fx.Hit(transform.position);
       }
       Destroy(gameObject);
     }
@@ -35,16 +35,25 @@ namespace Tidewatch {
 
   /// <summary>Placeholder one-shot effects (expanding fading circle).</summary>
   public class Fx : MonoBehaviour {
-    SpriteRenderer sr; float t, life, size; Color c;
-    public static void Splash(Vector2 at, float radius) => Make(at, radius * 2f, new Color(1f, 1f, 1f, 0.5f), 0.35f);
-    public static void Blast(Vector2 at, float radius) => Make(at, radius * 2f, new Color(1f, 0.5f, 0.1f, 0.6f), 0.5f);
-    static void Make(Vector2 at, float size, Color c, float life){
+    SpriteRenderer sr; float t, life, size; Color c; Sprite[] frames;
+    /// <summary>Mortar splash / sinking splash: fx_splash frames (4 x 96 px) if present, else an expanding circle.</summary>
+    public static void Splash(Vector2 at, float radius) => Make(at, radius * 2f, new Color(1f, 1f, 1f, 0.5f), 0.35f, "fx_splash");
+    /// <summary>Cannonball / gunboat hit puff: fx_hit frames if present, else a small white circle.</summary>
+    public static void Hit(Vector2 at) => Make(at, 0.5f, new Color(1f, 1f, 1f, 0.6f), 0.25f, "fx_hit");
+    public static void Blast(Vector2 at, float radius) => Make(at, radius * 2f, new Color(1f, 0.5f, 0.1f, 0.6f), 0.5f, null);
+    static void Make(Vector2 at, float size, Color c, float life, string sheet){
       var go = new GameObject("Fx"); go.transform.position = at; var f = go.AddComponent<Fx>();
-      f.sr = Art.Make(go.transform, null, Art.Circle, Vector2.one, c, 25); f.c = c; f.life = life; f.size = size;
+      f.frames = sheet == null ? System.Array.Empty<Sprite>() : Art.Frames(sheet);
+      if (f.frames.Length > 0){ f.sr = Art.Make(go.transform, null, f.frames[0], Vector2.one, Color.white, 25); f.sr.sprite = f.frames[0]; f.c = Color.white; f.size = size / f.frames[0].bounds.size.x; }
+      else { f.sr = Art.Make(go.transform, null, Art.Circle, Vector2.one, c, 25); f.c = c; f.size = size; }
+      f.life = life;
     }
     void Update(){
       t += Time.deltaTime; float k = Mathf.Clamp01(t / life);
-      transform.localScale = Vector3.one * size * (0.4f + 0.6f * k); sr.color = new Color(c.r, c.g, c.b, c.a * (1f - k));
+      if (frames.Length > 0){   // flipbook at full size, fading out on the last frame
+        transform.localScale = Vector3.one * size; sr.sprite = frames[Mathf.Min(frames.Length - 1, (int)(k * frames.Length))];
+        sr.color = new Color(1f, 1f, 1f, k < 0.75f ? 1f : (1f - k) * 4f);
+      } else { transform.localScale = Vector3.one * size * (0.4f + 0.6f * k); sr.color = new Color(c.r, c.g, c.b, c.a * (1f - k)); }
       if (k >= 1f) Destroy(gameObject);
     }
   }
