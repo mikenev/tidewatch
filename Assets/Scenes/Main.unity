@@ -119,7 +119,7 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
---- !u!1 &764538137
+--- !u!1 &188825218
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -127,9 +127,9 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 764538140}
-  - component: {fileID: 764538139}
-  - component: {fileID: 764538138}
+  - component: {fileID: 188825221}
+  - component: {fileID: 188825220}
+  - component: {fileID: 188825219}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -137,21 +137,21 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!81 &764538138
+--- !u!81 &188825219
 AudioListener:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 764538137}
+  m_GameObject: {fileID: 188825218}
   m_Enabled: 1
---- !u!20 &764538139
+--- !u!20 &188825220
 Camera:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 764538137}
+  m_GameObject: {fileID: 188825218}
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
@@ -196,13 +196,13 @@ Camera:
   m_OcclusionCulling: 1
   m_StereoConvergence: 10
   m_StereoSeparation: 0.022
---- !u!4 &764538140
+--- !u!4 &188825221
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 764538137}
+  m_GameObject: {fileID: 188825218}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -10}
@@ -211,7 +211,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1 &1993395650
+--- !u!1 &1943076578
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -219,10 +219,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1993395654}
-  - component: {fileID: 1993395653}
-  - component: {fileID: 1993395652}
-  - component: {fileID: 1993395651}
+  - component: {fileID: 1943076582}
+  - component: {fileID: 1943076581}
+  - component: {fileID: 1943076580}
+  - component: {fileID: 1943076579}
   m_Layer: 0
   m_Name: Game
   m_TagString: Untagged
@@ -230,13 +230,13 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &1993395651
+--- !u!114 &1943076579
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1993395650}
+  m_GameObject: {fileID: 1943076578}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bf2985638d3c2d37884cc2435506b0a4, type: 3}
@@ -245,37 +245,37 @@ MonoBehaviour:
   musicVolume: 0.35
   sfxVolume: 0.85
   crossfade: 1.2
---- !u!114 &1993395652
+--- !u!114 &1943076580
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1993395650}
+  m_GameObject: {fileID: 1943076578}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 845e30114efab15b99b72e786aad7d26, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tidewatch.Hud
---- !u!114 &1993395653
+--- !u!114 &1943076581
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1993395650}
+  m_GameObject: {fileID: 1943076578}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 92158ed30781c052a906fbcb3e3e6494, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Tidewatch.Game
---- !u!4 &1993395654
+--- !u!4 &1943076582
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1993395650}
+  m_GameObject: {fileID: 1943076578}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -288,5 +288,5 @@ Transform:
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
-  - {fileID: 764538140}
-  - {fileID: 1993395654}
+  - {fileID: 188825221}
+  - {fileID: 1943076582}

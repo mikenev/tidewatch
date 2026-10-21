@@ -68,3 +68,12 @@ Same convention as Broomstick Bash: **.ogg Vorbis, 44.1 kHz**, peaks at or below
 | `SFX/wave_horn.ogg` | 1-2 s | Wave starts |
 | `SFX/ui_click.ogg` | < 0.15 s | Any button |
 | `SFX/ui_error.ogg` | < 0.3 s | Not enough gold |
+
+## M2 additions (optional; the game falls back until these exist)
+| File | Size / length | Notes |
+|---|---|---|
+| `Sprites/tower_chain_barrel.png` | 80 x 32 px | Chain-Shot Post rotating barrel, pivot at left-centre (0, 0.5) like the cannon barrel |
+| `Audio/SFX/mortar_fire.ogg` | < 0.8 s | Mortar Fort shot (falls back to cannon_fire) |
+| `Audio/SFX/chain_fire.ogg` | < 0.5 s | Chain-Shot Post shot (falls back to cannon_fire) |
+| `Audio/SFX/raft_blast.ogg` | < 1 s | Fire Raft explodes and disables a defense (falls back to harbor_breach) |
+| `Audio/SFX/galleon_launch.ogg` | < 1 s | Dread Galleon launches dinghies (falls back to wave_horn) |

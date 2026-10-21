@@ -7,16 +7,22 @@ namespace Tidewatch {
       var isl = g.Island; var root = new GameObject("Map").transform;
       if (Art.Has(isl.background)) Art.Make(root, isl.background, Art.Square, Vector2.one, Color.white, -20);
       else {
-        var shallows = new Color(0.33f, 0.78f, 0.84f);
+        var pal = isl.palette ?? new Palette();
+        Color shallows = Art.Hex(pal.shallows, new Color(0.33f, 0.78f, 0.84f)), sand = Art.Hex(pal.sand, new Color(0.96f, 0.9f, 0.72f)),
+              grass = Art.Hex(pal.grass, new Color(0.45f, 0.72f, 0.35f)), reef = Art.Hex(pal.reef, new Color(0.25f, 0.43f, 0.45f));
         foreach (var lane in g.Lanes)
           for (float d = 0; d <= lane.Length; d += 0.25f) Art.Make(root, null, Art.Circle, Vector2.one * 0.95f, shallows, -15, lane.Pos(d));
         if (isl.land != null) foreach (var l in isl.land){
-          Art.Make(root, null, Art.Circle, Vector2.one * (l.radius * 2f + 0.3f), new Color(0.55f, 0.85f, 0.88f), -12, l.pos);
-          Art.Make(root, null, Art.Circle, Vector2.one * l.radius * 2f, new Color(0.96f, 0.9f, 0.72f), -11, l.pos);
-          Art.Make(root, null, Art.Circle, Vector2.one * l.radius * 1.2f, new Color(0.45f, 0.72f, 0.35f), -10, l.pos + new Vector2(0.15f, 0.2f));
+          Art.Make(root, null, Art.Circle, Vector2.one * (l.radius * 2f + 0.3f), Color.Lerp(shallows, Color.white, 0.25f), -12, l.pos);
+          Art.Make(root, null, Art.Circle, Vector2.one * l.radius * 2f, sand, -11, l.pos);
+          Art.Make(root, null, Art.Circle, Vector2.one * l.radius * 1.2f, grass, -10, l.pos + new Vector2(0.15f, 0.2f));
+        }
+        if (isl.reefs != null) foreach (var r in isl.reefs){   // rocks that keep big ships off the reef lane
+          Art.Make(root, null, Art.Circle, Vector2.one * r.radius * 2f, reef, -13, r.pos);
+          Art.Make(root, null, Art.Circle, Vector2.one * r.radius * 1.2f, reef, -13, r.pos + new Vector2(r.radius * 0.9f, -r.radius * 0.4f));
         }
         float shore = isl.harbor.x - 0.4f;   // mainland strip behind the harbor
-        Art.Make(root, null, Art.Square, new Vector2(shore + 12f, 12f), new Color(0.96f, 0.9f, 0.72f), -11, new Vector2((shore - 12f) * 0.5f, 0f));
+        Art.Make(root, null, Art.Square, new Vector2(shore + 12f, 12f), sand, -11, new Vector2((shore - 12f) * 0.5f, 0f));
       }
       var city = new GameObject("City").transform; city.SetParent(root, false); city.position = isl.harbor + new Vector2(-1.0f, 0f);
       if (Art.Has("city_harbor")) Art.Make(city, "city_harbor", Art.Square, Vector2.one, Color.white, -5);

@@ -4,44 +4,62 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.SceneManagement;
 namespace Tidewatch {
-  public enum GameState { Playing, Won, Lost }
+  public enum GameState { Menu, Playing, Won, Lost }
 
-  /// <summary>Core loop: waves from config, city hearts, gold, build slots, speed and pause, win/lose.
-  /// Keys: Space = start/call wave, F = 1x/2x, P/Esc = pause, R/Enter = restart on the end screen.</summary>
+  /// <summary>Core loop: island select, waves from config, city hearts, gold, build slots, moving defensive ships between
+  /// waves, speed and pause, win/lose with stars. Keys: Space = start/call wave, F = 1x/2x, P/Esc = pause,
+  /// R/Enter = restart on the end screen, 1/2 = pick an island on the menu.</summary>
   public class Game : MonoBehaviour {
     public static Game I;
     public const float SlotTapRadius = 0.8f;
+    /// <summary>Island to start straight away after a scene reload (retry); -1 = show the island select.</summary>
+    static int pendingIsland = -1;
     public GameConfigData Cfg { get; private set; }
     public IslandDef Island { get; private set; }
+    public int IslandIndex { get; private set; } = -1;
     public readonly List<Lane> Lanes = new();
     public readonly List<BuildSlot> Slots = new();
     public readonly List<Ship> Ships = new();
     public int Gold { get; private set; }
     public int Hearts { get; private set; }
-    public GameState State { get; private set; }
+    public GameState State { get; private set; } = GameState.Menu;
     public int WavesStarted { get; private set; }
-    public int TotalWaves => Island.waves.Length;
+    public int TotalWaves => Island != null ? Island.waves.Length : 0;
     /// <summary>Seconds until the next wave starts by itself; -1 = waiting (before wave 1, or while a wave is still spawning).</summary>
     public float Countdown { get; private set; } = -1f;
     public bool Paused { get; private set; }
     public bool Fast { get; private set; }
     public BuildSlot Selected { get; private set; }
+    /// <summary>Buoy whose ship is being moved (tap a free buoy to finish); null when not moving.</summary>
+    public BuildSlot Moving { get; private set; }
     public bool AnyBuilt { get; private set; }
+    public int StarsEarned { get; private set; }
     public bool InBattle => spawningGroups > 0 || Ships.Count > 0;
-    public bool CanCallWave => State == GameState.Playing && WavesStarted < TotalWaves && spawningGroups == 0;
+    public bool CanCallWave => State == GameState.Playing && !Paused && WavesStarted < TotalWaves && spawningGroups == 0;
     public int EarlyBonus => WavesStarted > 0 && Countdown > 0f ? Mathf.CeilToInt(Countdown * Island.earlyGoldPerSecond) : 0;
+    public bool CanMove(BuildSlot s) => State == GameState.Playing && s && s.defense && s.defense.IsShip && !InBattle && Gold >= Cfg.moveFee && FreeBuoyExists();
 
     int spawningGroups; int[] alive, groupsLeft; bool[] bonusPaid; Camera cam;
 
     void Awake(){ I = this; Time.timeScale = 1f; }
     void Start(){
-      Cfg = GameConfigData.Load(); Island = Cfg.islands[0];
+      Cfg = GameConfigData.Load(); cam = Camera.main;
+      for (int i = 0; i < Cfg.islands.Length; i++)
+        Debug.Log($"[TW] menu island={Cfg.islands[i].id} stars={Progress.Stars(Cfg.islands[i].id)} unlocked={Progress.Unlocked(Cfg, i)}");
+      int p = pendingIsland; pendingIsland = -1;
+      if (p >= 0 && Progress.Unlocked(Cfg, p)) StartIsland(p);
+    }
+
+    public void StartIsland(int index){
+      if (State != GameState.Menu || index < 0 || index >= Cfg.islands.Length || !Progress.Unlocked(Cfg, index)) return;
+      IslandIndex = index; Island = Cfg.islands[index];
       Gold = Island.startGold; Hearts = Island.hearts;
       int n = Island.waves.Length; alive = new int[n]; groupsLeft = new int[n]; bonusPaid = new bool[n];
-      cam = Camera.main;
       foreach (var l in Island.lanes) Lanes.Add(new Lane(l));
+      if (cam && Island.palette != null) cam.backgroundColor = Art.Hex(Island.palette.sea, cam.backgroundColor);
       MapBuilder.Build(this);
-      Debug.Log($"[TW] ready island={Island.id} waves={n} gold={Gold} hearts={Hearts} slots={Slots.Count}");
+      State = GameState.Playing; ApplyTime();
+      Debug.Log($"[TW] ready island={Island.id} waves={n} gold={Gold} hearts={Hearts} slots={Slots.Count} lanes={Lanes.Count}");
     }
 
     void FitCamera(){
@@ -59,7 +77,7 @@ namespace Tidewatch {
       for (int w = 0; w < TotalWaves; w++){
         if (w < WavesStarted && groupsLeft[w] == 0 && alive[w] == 0 && !bonusPaid[w]){
           bonusPaid[w] = true; AddGold(Island.waves[w].bonus); GameEvents.Play("coin");
-          Debug.Log($"[TW] wave {w + 1} cleared bonus={Island.waves[w].bonus} gold={Gold}");
+          Debug.Log($"[TW] wave {w + 1} cleared bonus={Island.waves[w].bonus} gold={Gold} hearts={Hearts}");
         }
         allPaid &= bonusPaid[w];
       }
@@ -69,8 +87,12 @@ namespace Tidewatch {
     void HandleInput(){
       var kb = Keyboard.current;
       if (kb != null){
-        if (State == GameState.Playing){
-          if (kb.spaceKey.wasPressedThisFrame) CallWave();
+        if (State == GameState.Menu){
+          if (kb.digit1Key.wasPressedThisFrame) StartIsland(0);
+          if (kb.digit2Key.wasPressedThisFrame) StartIsland(1);
+          if (kb.digit3Key.wasPressedThisFrame) StartIsland(2);
+        } else if (State == GameState.Playing){
+          if (kb.spaceKey.wasPressedThisFrame) CallWave();   // ignored while paused (CanCallWave)
           if (kb.pKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame) TogglePause();
           if (kb.fKey.wasPressedThisFrame) ToggleSpeed();
         } else if (kb.rKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) Restart();
@@ -81,6 +103,7 @@ namespace Tidewatch {
       Vector2 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, 10f));
       BuildSlot best = null; float bd = SlotTapRadius;
       foreach (var s in Slots){ float d = Vector2.Distance(world, s.transform.position); if (d < bd){ bd = d; best = s; } }
+      if (Moving){ if (best && best.type == "buoy" && !best.defense) MoveTo(best); return; }
       Select(best);
     }
 
@@ -93,7 +116,8 @@ namespace Tidewatch {
     // ---------- waves ----------
     public void CallWave(){ if (CanCallWave) StartWave(true); }
     void StartWave(bool calledByPlayer){
-      if (!CanCallWave) return;
+      if (State != GameState.Playing || WavesStarted >= TotalWaves || spawningGroups > 0) return;
+      CancelMove();
       int bonus = calledByPlayer ? EarlyBonus : 0;
       if (bonus > 0){ AddGold(bonus); GameEvents.Play("coin"); }
       Countdown = -1f;
@@ -108,31 +132,51 @@ namespace Tidewatch {
       var def = Cfg.Enemy(g.enemy); var lane = LaneFor(def, g.lane);
       if (def == null || lane == null) Debug.LogError($"[TW] wave {w + 1}: bad group {g.enemy}");
       else for (int i = 0; i < g.count && State == GameState.Playing; i++){
-        SpawnShip(def, lane, w);
+        SpawnShip(def, LaneFor(def, g.lane) ?? lane, w, 0f);
         if (i < g.count - 1) yield return new WaitForSeconds(Mathf.Max(0.05f, g.interval));
       }
       groupsLeft[w]--; spawningGroups--;
       if (spawningGroups == 0 && WavesStarted < TotalWaves && State == GameState.Playing) Countdown = Island.waveGap;
     }
+    /// <summary>A random lane (or the named one) whose size tags allow this ship.</summary>
     Lane LaneFor(EnemyDef def, string laneId){
       if (def == null) return null;
       var ok = new List<Lane>();
       foreach (var l in Lanes) if ((string.IsNullOrEmpty(laneId) || l.id == laneId) && l.Allows(def.size)) ok.Add(l);
       return ok.Count == 0 ? null : ok[Random.Range(0, ok.Count)];
     }
-    void SpawnShip(EnemyDef def, Lane lane, int w){
-      var go = new GameObject(def.id); var s = go.AddComponent<Ship>(); s.Init(def, lane, w);
+    Ship SpawnShip(EnemyDef def, Lane lane, int w, float dist){
+      var go = new GameObject(def.id); var s = go.AddComponent<Ship>(); s.Init(def, lane, w, dist);
       Ships.Add(s); alive[w]++;
+      if (def.boss) Debug.Log($"[TW] boss {def.id} spawned on lane {lane.id}");
+      return s;
+    }
+    /// <summary>Dread Galleon: launch `count` ships at the parent's position (its own lane if their size may use it).</summary>
+    public void Launch(Ship parent, string enemyId, int count){
+      var def = Cfg.Enemy(enemyId); if (def == null || State != GameState.Playing) return;
+      var lane = parent.lane.Allows(def.size) ? parent.lane : LaneFor(def, null); if (lane == null) return;
+      float d0 = lane == parent.lane ? parent.dist : 0f;
+      for (int i = 0; i < count; i++) SpawnShip(def, lane, parent.wave, Mathf.Clamp(d0 + 0.35f * (i - (count - 1) * 0.5f), 0f, lane.Length - 0.1f));
+      GameEvents.Play("launch");
+      Debug.Log($"[TW] {parent.def.id} launched {count} {def.id} hp={Mathf.Max(0, parent.hp):0}");
     }
     public void ShipSunk(Ship s){
       if (s.Dead) return; s.Dead = true; Ships.Remove(s); alive[s.wave]--;
       AddGold(s.def.gold); GameEvents.Play("ship_sink"); s.Sink();
+      if (s.def.boss) Debug.Log($"[TW] boss {s.def.id} sunk gold={Gold}");
     }
     public void ShipReachedHarbor(Ship s){
       if (s.Dead) return; s.Dead = true; Ships.Remove(s); alive[s.wave]--;
       Hearts = Mathf.Max(0, Hearts - s.def.hearts); GameEvents.Play("harbor_breach"); Destroy(s.gameObject);
       Debug.Log($"[TW] {s.def.id} reached the harbor hearts={Hearts}");
       if (Hearts <= 0) EndGame(GameState.Lost);
+    }
+    /// <summary>Fire Raft reached a defense: it blows up (no gold) and disables the nearest defense.</summary>
+    public void RaftExploded(Ship raft, Defense target){
+      if (raft.Dead) return; raft.Dead = true; Ships.Remove(raft); alive[raft.wave]--;
+      target.Disable(raft.def.disableTime); Fx.Blast(raft.transform.position, raft.def.blastRange * 0.6f);
+      GameEvents.Play("raft_blast"); Destroy(raft.gameObject);
+      Debug.Log($"[TW] fireraft exploded: {target.def.id} on slot {target.GetComponentInParent<BuildSlot>().index} disabled {raft.def.disableTime}s");
     }
     /// <summary>Ship in range that is furthest along its lane (least distance left to the harbor).</summary>
     public Ship FindTarget(Vector2 from, float range){
@@ -143,15 +187,26 @@ namespace Tidewatch {
       }
       return best;
     }
+    /// <summary>Copy of the live ships within range (safe to damage while iterating).</summary>
+    public List<Ship> ShipsInRange(Vector2 at, float range){
+      var l = new List<Ship>(); float r2 = range * range;
+      foreach (var s in Ships) if (!s.Dead && ((Vector2)s.transform.position - at).sqrMagnitude <= r2) l.Add(s);
+      return l;
+    }
+    /// <summary>Nearest working defense within range, or null.</summary>
+    public Defense NearestDefense(Vector2 at, float range){
+      Defense best = null; float bd = range;
+      foreach (var s in Slots) if (s.defense && !s.defense.Disabled){ float d = Vector2.Distance(at, s.transform.position); if (d <= bd){ bd = d; best = s.defense; } }
+      return best;
+    }
 
     // ---------- economy / building ----------
     void AddGold(int g){ Gold += g; }
     bool Spend(int cost){ if (Gold < cost){ GameEvents.Play("ui_error"); return false; } Gold -= cost; return true; }
-    public int BuildCost(BuildSlot s) => Cfg.DefenseForSlot(s.type).levels[0].cost;
     public int SellValue(BuildSlot s) => s.defense ? Mathf.FloorToInt(s.defense.spent * Cfg.sellRefund) : 0;
-    public void Build(BuildSlot s){
-      if (!s || s.defense || State != GameState.Playing) return;
-      var d = Cfg.DefenseForSlot(s.type); if (!Spend(d.levels[0].cost)) return;
+    public void Build(BuildSlot s, DefenseDef d){
+      if (!s || s.defense || d == null || d.slot != s.type || State != GameState.Playing) return;
+      if (!Spend(d.levels[0].cost)) return;
       var go = new GameObject(d.id); go.transform.SetParent(s.transform, false);
       s.defense = go.AddComponent<Defense>(); s.defense.Init(d); AnyBuilt = true;
       GameEvents.Play("build"); s.Show(true, s.defense.L.range);
@@ -170,16 +225,39 @@ namespace Tidewatch {
       Debug.Log($"[TW] sold slot {s.index} refund={refund} gold={Gold}");
       Select(null);
     }
+    bool FreeBuoyExists(){ foreach (var s in Slots) if (s.type == "buoy" && !s.defense) return true; return false; }
+    public void BeginMove(BuildSlot s){
+      if (!CanMove(s)) { GameEvents.Play("ui_error"); return; }
+      Moving = s; Select(null); s.Show(true, 0f);
+      foreach (var b in Slots) if (b.type == "buoy" && !b.defense) b.Show(true, 0f);
+    }
+    public void CancelMove(){
+      if (!Moving) return;
+      foreach (var b in Slots) if (b.type == "buoy") b.Show(false, 0f);
+      Moving = null;
+    }
+    void MoveTo(BuildSlot to){
+      var from = Moving; CancelMove();
+      if (!CanMove(from) || !to || to.defense || to.type != "buoy" || !Spend(Cfg.moveFee)) return;
+      var d = from.defense; from.defense = null; to.defense = d; d.transform.SetParent(to.transform, false);
+      GameEvents.Play("build");
+      Debug.Log($"[TW] moved {d.def.id} from slot {from.index} to slot {to.index} fee={Cfg.moveFee} gold={Gold}");
+      Select(to);
+    }
 
     // ---------- speed / pause / end ----------
     void ApplyTime(){ Time.timeScale = State != GameState.Playing || Paused ? 0f : (Fast ? 2f : 1f); }
     public void TogglePause(){ if (State != GameState.Playing) return; Paused = !Paused; ApplyTime(); GameEvents.Play("ui_click"); }
-    public void ToggleSpeed(){ if (State != GameState.Playing) return; Fast = !Fast; ApplyTime(); GameEvents.Play("ui_click"); }
+    public void ToggleSpeed(){ if (State != GameState.Playing || Paused) return; Fast = !Fast; ApplyTime(); GameEvents.Play("ui_click"); }
     void EndGame(GameState s){
       if (State != GameState.Playing) return;
-      State = s; Select(null); ApplyTime();
-      Debug.Log($"[TW] {(s == GameState.Won ? "WON" : "LOST")} hearts={Hearts} gold={Gold} waves={WavesStarted}");
+      State = s; CancelMove(); Select(null); ApplyTime();
+      if (s == GameState.Won){ StarsEarned = Cfg.Stars(Hearts, Island.hearts); Progress.Record(Island.id, StarsEarned); }
+      Debug.Log($"[TW] {(s == GameState.Won ? "WON" : "LOST")} island={Island.id} hearts={Hearts} stars={StarsEarned} gold={Gold} waves={WavesStarted}");
     }
-    public void Restart(){ Time.timeScale = 1f; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
+    /// <summary>Replay the same island.</summary>
+    public void Restart(){ pendingIsland = IslandIndex; Reload(); }
+    public void ToMenu(){ pendingIsland = -1; Reload(); }
+    void Reload(){ Time.timeScale = 1f; SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); }
   }
 }
