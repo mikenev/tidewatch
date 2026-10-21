@@ -195,6 +195,15 @@ def battle_theme():
             T.put(brass(midi(m), d*q/2*.95, .75, 1.3), (4*rep - 0)*bar + pos*q/2 + (rep-1)*4*bar*0, 1, .1)
     return T.done(.14)
 
+VICTORY_RMS = .091   # match defeat_sting (~0.089 decoded); reached by soft-knee compression, not gain
+def glue(y, target):
+    """Raise loudness to `target` RMS with a tanh soft-knee compressor, keeping the peak at PEAK_DB."""
+    c = 10**(PEAK_DB/20)
+    for drive in np.arange(1., 12., .05):
+        z = np.tanh(y/c*drive); z = z/np.abs(z).max()*c
+        if np.sqrt(np.mean(z**2)) >= target: return z
+    return z
+
 def sting(kind):
     x = np.zeros(N(2.4))
     def add(s, p, g=1.):
@@ -213,6 +222,7 @@ def sting(kind):
     y = y - y.mean(); a, b = N(.002), N(.5)
     y[:a] *= np.linspace(0, 1, a); y[-b:] *= np.linspace(1, 0, b)**2; y[0] = y[-1] = 0
     y = y / np.abs(y).max() * 10**(PEAK_DB/20)
+    if kind == 'victory': y = glue(y, VICTORY_RMS)
     return np.stack([y, .97*y + .03*np.roll(y, 300)], 1)
 
 # ---------- sfx (mono); every length is kept ~40 ms under the spec limit to allow for Vorbis padding
@@ -289,6 +299,60 @@ def ui_error():
         i = N(.11*k); x[i:i+n] += s
     return x
 
+# ---------- M2 sfx
+def mortar_fire():          # deep thump + hollow tube "toonk" + smoke hiss
+    n = N(.56); x = 1.2*membrane(52, .56, 32, .16, 1.0)
+    x += .5*sine(210*(1 - .25*np.arange(n)/n), n)*expd(n, .07)
+    x += .5*tvlp(noise(n), 2500*expd(n, .08) + 200)*expd(n, .15)
+    return x
+def mortar_impact():        # falling whistle tail, then heavy splash-boom
+    x = np.zeros(N(.76)); n = N(.16); f = 1400*(1 - .45*np.arange(n)/n)
+    x[:n] += .25*sine(f, n)*np.linspace(.2, 1, n)
+    m = N(.6); b = 1.1*membrane(48, .6, 30, .2, 1.2) + .8*tvlp(noise(m), 4000*expd(m, .1) + 250)*expd(m, .2)
+    b += .3*bp(noise(m), 300, 1800)*expd(m, .3)
+    x[n:n+m] += b[:len(x)-n]
+    return x
+def chainshot_fire():       # sharp crack + whirling chain (amplitude-modulated rattle)
+    n = N(.48); x = .9*membrane(95, .48, 55, .07, 1.2) + .6*tvlp(noise(n), 6000*expd(n, .03) + 300)*expd(n, .06)
+    whirl = (1 + np.sin(2*np.pi*(18 - 8*np.arange(n)/n)*tt(n)))/2
+    x += .45*bp(noise(n), 2500, 7500)*whirl*np.clip(tt(n)/.05, 0, 1)*expd(n, .2)
+    for k in range(10):
+        m = N(.012); i = N(.05 + .035*k)
+        if i + m < n: x[i:i+m] += .25*bp(noise(m), 3000, 9000)*expd(m, .003)
+    return x
+def net_cast():             # rope whoosh, lead weights clinking, soft splash
+    x = np.zeros(N(.62)); n = N(.34); t = np.arange(n)/n
+    x[:n] += .8*tvlp(noise(n), 500*2**(2.2*np.sin(np.pi*t)))*np.sin(np.pi*t)**2
+    for k in range(5):
+        m = N(.05); i = N(.2 + .03*k + rng.uniform(0, .015)); f = rng.uniform(1900, 2600)
+        x[i:i+m] += .2*(sine(f, m) + .5*sine(f*2.4, m))*expd(m, .012)
+    m = N(.3); i = N(.32); x[i:i+m] += .5*tvlp(noise(m), 2500*expd(m, .1) + 300)*expd(m, .1)
+    return x
+def fireraft_explode():     # powder-keg blast, crackling fire, debris
+    n = N(.96); x = 1.2*membrane(60, .96, 30, .2, 1.4)
+    x += 1.0*tvlp(noise(n), 7000*expd(n, .06) + 300)*expd(n, .22)
+    crack = (rng.random(n) > .985)*hp(noise(n), 2500); x += .5*crack*expd(n, .45)
+    for k in range(6):
+        m = N(.04); i = N(.12 + .1*k + rng.uniform(0, .04)); x[i:i+m] += .25*bp(noise(m), 600, 2500)*expd(m, .01)
+    return x
+def galleon_horn():         # deep, ominous horn: low fundamental, minor-second beating partner, slow swell
+    n = N(1.9); f = midi(31)*(1 - .03*(1 - np.clip(tt(n)/.3, 0, 1)))   # G1, scoops up
+    vib = 1 + .004*np.sin(2*np.pi*3.5*tt(n))
+    x = sum(g*saw(f*h*vib, n, i*.2) for i, (h, g) in enumerate(((1, 1.), (1.0595, .35), (2, .45), (3, .2))))
+    x = tvlp(x, 180 + 1100*adsr(n, .45, .3, .65, .5)) * adsr(n, .3, .25, .85, .55)
+    return x + .15*bp(noise(n), 200, 800)*adsr(n, .3, .2, .6, .5)
+def ship_move():            # creaking timber, water swish along the hull, rigging rattle
+    x = np.zeros(N(.86)); n = len(x); t = np.arange(n)/n
+    x += .6*tvlp(noise(n), 400 + 1400*np.sin(np.pi*t))*np.sin(np.pi*t)**1.5        # water swish
+    for p in (.05, .4):                                                             # two creaks
+        m = N(.28); f = rng.uniform(180, 240)*(1 + .25*np.arange(m)/m)
+        cr = bp(pulse(f + 20*np.sin(2*np.pi*9*tt(m)), m, .1), 300, 2200)*np.sin(np.pi*np.arange(m)/m)
+        i = N(p); x[i:i+m] += .35*cr[:n-i]
+    for k in range(6):                                                              # rigging ticks
+        m = N(.02); i = N(.15 + .1*k + rng.uniform(0, .04))
+        if i + m < n: x[i:i+m] += .2*bp(noise(m), 1500, 5000)*expd(m, .005)
+    return x
+
 # ---------- write
 def edge(x, fout=.03):
     x = x - x.mean(); a, b = N(.002), N(fout)
@@ -317,8 +381,18 @@ def _encode(path, x, q):
 
 SFX = dict(cannon_fire=cannon_fire, gunboat_fire=gunboat_fire, ball_hit=ball_hit, ship_sink=ship_sink,
            harbor_breach=harbor_breach, coin=coin, build=build, upgrade=upgrade, sell=sell,
-           wave_horn=wave_horn, ui_click=ui_click, ui_error=ui_error)
-QUIET = {'ui_click': .07, 'ui_error': .08, 'gunboat_fire': .10, 'coin': .09}
+           wave_horn=wave_horn, ui_click=ui_click, ui_error=ui_error,
+           # M2 (appended last so the shared rng stream, and thus every earlier clip, is unchanged)
+           mortar_fire=mortar_fire, mortar_impact=mortar_impact, chainshot_fire=chainshot_fire, net_cast=net_cast,
+           fireraft_explode=fireraft_explode, galleon_horn=galleon_horn, ship_move=ship_move)
+QUIET = {'ui_click': .07, 'ui_error': .08, 'gunboat_fire': .10, 'coin': .09, 'galleon_horn': .10}
+# max length (s): spec (Assets/ART_AUDIO_LIST.md); M2 sounds have no spec length yet, so these are our own lean targets
+LIMITS = {'Music/victory_sting': (2, 4), 'Music/defeat_sting': (2, 4), 'Music/theme_shanty_loop': (30, 60),
+          'Music/battle_loop': (30, 60), 'SFX/cannon_fire': .6, 'SFX/gunboat_fire': .4, 'SFX/ball_hit': .4,
+          'SFX/ship_sink': 1.2, 'SFX/harbor_breach': 1., 'SFX/coin': .4, 'SFX/build': .8, 'SFX/upgrade': .8,
+          'SFX/sell': .6, 'SFX/wave_horn': (1, 2), 'SFX/ui_click': .15, 'SFX/ui_error': .3,
+          'SFX/mortar_fire': .6, 'SFX/mortar_impact': .8, 'SFX/chainshot_fire': .5, 'SFX/net_cast': .65,
+          'SFX/fireraft_explode': 1., 'SFX/galleon_horn': (1.5, 2.), 'SFX/ship_move': .9}
 
 def main():
     write_ogg(f'{OUT}/Music/theme_shanty_loop.ogg', shanty_theme(), 2)
@@ -334,6 +408,8 @@ def verify():
     """Decode every OGG under OUT; report duration/size/DC/peak/RMS, edges and loop seams. Returns 1 on failure."""
     import glob
     bad = 0
+    for k in LIMITS:
+        if not os.path.exists(f'{OUT}/{k}.ogg'): print(f'MISSING {k}.ogg'); bad = 1
     for p in sorted(glob.glob(f'{OUT}/**/*.ogg', recursive=True)):
         ch = int(subprocess.check_output(['ffprobe', '-v', 'error', '-show_entries', 'stream=channels', '-of', 'csv=p=0', p]).split()[0])
         x = np.frombuffer(subprocess.check_output(['ffmpeg', '-v', 'error', '-i', p, '-f', 'f32le', '-']), '<f4').reshape(-1, ch)
@@ -346,6 +422,10 @@ def verify():
             bad |= seam > p99
         else:
             s += f' first={np.abs(x[0]).max():.4f} last={np.abs(x[-1]).max():.4f}'
+        lim = LIMITS.get(os.path.relpath(p, OUT)[:-4]); dur = len(x)/44100
+        if lim is not None:
+            lo, hi = lim if isinstance(lim, tuple) else (0, lim)
+            if not lo <= dur <= hi: bad = 1; s += f' LENGTH! ({lo}-{hi} s)'
         print(s)
     return int(bad)
 
