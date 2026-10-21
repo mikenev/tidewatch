@@ -17,6 +17,7 @@ namespace Tidewatch {
     public string id, name, slot, kind; public DefenseLevel[] levels;
     public bool IsAura => kind == "aura";
   }
+  [Serializable] public class IslandTint { public string island, tint; }
   [Serializable] public class Palette { public string sea, shallows, sand, grass, reef; }
   [Serializable] public class LaneDef { public string id; public string[] sizes; public Vector2[] points; }
   [Serializable] public class LandDef { public Vector2 pos; public float radius; }
@@ -32,6 +33,12 @@ namespace Tidewatch {
     public const string ResourcePath = "Config/tidewatch";
     public float sellRefund = 0.7f, stars3 = 0.9f, stars2 = 0.5f; public int moveFee = 15;
     public EnemyDef[] enemies; public DefenseDef[] defenses; public IslandDef[] islands;
+    /// <summary>Multiply tint for shared sprites per island id (may list future islands).</summary>
+    public IslandTint[] islandTints;
+    public Color TintFor(string islandId){
+      if (islandTints != null) foreach (var t in islandTints) if (t.island == islandId && ColorUtility.TryParseHtmlString(t.tint, out var c)) return c;
+      return Color.white;
+    }
 
     public static GameConfigData Load(){
       var ta = Resources.Load<TextAsset>(ResourcePath);
@@ -60,6 +67,7 @@ namespace Tidewatch {
         if (e.blastRange > 0 && e.disableTime <= 0) err.Add($"enemy {e.id}: blastRange needs disableTime > 0");
       }
       if (moveFee < 0) err.Add("moveFee must be >= 0");
+      if (islandTints != null) foreach (var t in islandTints) if (!ColorUtility.TryParseHtmlString(t.tint, out _)) err.Add($"islandTints {t.island}: bad colour {t.tint}");
       if (defenses == null || defenses.Length == 0) err.Add("no defenses");
       else foreach (var d in defenses){
         if (d.levels == null || d.levels.Length == 0) { err.Add($"defense {d.id}: no levels"); continue; }

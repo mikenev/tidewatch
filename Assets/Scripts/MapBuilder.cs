@@ -5,7 +5,7 @@ namespace Tidewatch {
   public static class MapBuilder {
     public static void Build(Game g){
       var isl = g.Island; var root = new GameObject("Map").transform;
-      if (Art.Has(isl.background)) Art.Make(root, isl.background, Art.Square, Vector2.one, Color.white, -20);
+      if (Art.Has(isl.background)) Art.Make(root, isl.background, Art.Square, Vector2.one, Color.white, -20, default, false);
       else {
         var pal = isl.palette ?? new Palette();
         Color shallows = Art.Hex(pal.shallows, new Color(0.33f, 0.78f, 0.84f)), sand = Art.Hex(pal.sand, new Color(0.96f, 0.9f, 0.72f)),

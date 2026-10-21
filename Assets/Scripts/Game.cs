@@ -56,6 +56,7 @@ namespace Tidewatch {
       Gold = Island.startGold; Hearts = Island.hearts;
       int n = Island.waves.Length; alive = new int[n]; groupsLeft = new int[n]; bonusPaid = new bool[n];
       foreach (var l in Island.lanes) Lanes.Add(new Lane(l));
+      Art.Tint = Cfg.TintFor(Island.id);
       if (cam && Island.palette != null) cam.backgroundColor = Art.Hex(Island.palette.sea, cam.backgroundColor);
       MapBuilder.Build(this);
       State = GameState.Playing; ApplyTime();

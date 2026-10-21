@@ -3,6 +3,20 @@
  "moveFee": 15,
  "stars3": 0.9,
  "stars2": 0.5,
+ "islandTints": [
+  {
+   "island": "coral_cay",
+   "tint": "#FFFFFF"
+  },
+  {
+   "island": "twin_reefs",
+   "tint": "#FFD8C2"
+  },
+  {
+   "island": "storm_isle",
+   "tint": "#C8D2E8"
+  }
+ ],
  "enemies": [
   {
    "id": "sloop",
@@ -240,7 +254,7 @@
    "name": "Coral Cay",
    "background": "coralcay_bg",
    "hearts": 20,
-   "startGold": 140,
+   "startGold": 150,
    "waveGap": 20,
    "earlyGoldPerSecond": 1.0,
    "harbor": {
@@ -389,8 +403,8 @@
     {
      "type": "buoy",
      "pos": {
-      "x": 3.4,
-      "y": -1.95
+      "x": 3.9,
+      "y": -2.25
      }
     },
     {
@@ -492,8 +506,8 @@
      "groups": [
       {
        "enemy": "sloop",
-       "count": 14,
-       "interval": 1.1,
+       "count": 12,
+       "interval": 1.2,
        "delay": 0
       }
      ]

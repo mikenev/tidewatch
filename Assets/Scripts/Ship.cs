@@ -13,7 +13,7 @@ namespace Tidewatch {
     public void Init(EnemyDef d, Lane l, int w, float startDist = 0f){
       def = d; lane = l; wave = w; hp = d.hp; dist = startDist;
       realArt = Art.Has("enemy_" + d.id);
-      baseColor = realArt ? Color.white : Art.Hex(d.color, new Color(0.55f, 0.25f, 0.2f));
+      baseColor = realArt ? Art.Tint : Art.Hex(d.color, new Color(0.55f, 0.25f, 0.2f));
       bodyT = new GameObject("Hull").transform; bodyT.SetParent(transform, false);   // unscaled pivot: rotates hull + sail together
       body = Art.Make(bodyT, "enemy_" + d.id, Art.Hull, new Vector2(d.w, d.h), baseColor, d.boss ? 9 : 10);
       if (!realArt){

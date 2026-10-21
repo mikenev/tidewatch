@@ -33,11 +33,13 @@ namespace Tidewatch {
       return s;
     }
     public static bool Has(string name) => Load(name);
+    /// <summary>Per-island multiply tint for the shared sprites (real art only; the island background stays untinted).</summary>
+    public static Color Tint = Color.white;
     /// <summary>Child sprite: the named art if present, else `fallback` tinted and scaled to `size` world units.</summary>
-    public static SpriteRenderer Make(Transform parent, string artName, Sprite fallback, Vector2 size, Color tint, int order, Vector2 localPos = default){
+    public static SpriteRenderer Make(Transform parent, string artName, Sprite fallback, Vector2 size, Color tint, int order, Vector2 localPos = default, bool islandTint = true){
       var go = new GameObject(artName ?? "Shape"); go.transform.SetParent(parent, false); go.transform.localPosition = localPos;
       var sr = go.AddComponent<SpriteRenderer>(); var real = Load(artName);
-      if (real){ sr.sprite = real; sr.color = Color.white; }
+      if (real){ sr.sprite = real; sr.color = islandTint ? Tint : Color.white; }
       else { sr.sprite = fallback; sr.color = tint; var b = fallback.bounds.size; go.transform.localScale = new Vector3(size.x / b.x, size.y / b.y, 1f); }
       sr.sortingOrder = order; return sr;
     }

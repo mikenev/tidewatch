@@ -73,7 +73,7 @@ namespace Tidewatch {
       if (aim) aim.rotation = Quaternion.Euler(0, 0, def.id == "gunboat" ? ang - 90f : ang);   // gunboat turns its broadside to the target
       if (cd <= 0f){
         cd = L.interval;
-        Projectile.Fire(transform.position, t, L);
+        Projectile.Fire(transform.position, t, L, def.id == "mortar" ? "mortar_shell" : def.id == "chain" ? "chain_shot" : "cannonball");
         GameEvents.Play(def.id + "_fire");
       }
     }

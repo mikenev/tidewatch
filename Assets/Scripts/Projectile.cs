@@ -4,7 +4,8 @@ namespace Tidewatch {
   /// Splash shots (mortar) are lobbed at a led ground point and hit every ship within the splash radius there.</summary>
   public class Projectile : MonoBehaviour {
     Ship target; Vector2 aim; DefenseLevel L; bool splash;
-    public static void Fire(Vector2 from, Ship t, DefenseLevel level){
+    /// <summary>art: "cannonball", "mortar_shell" or "chain_shot" (placeholder circle if missing).</summary>
+    public static void Fire(Vector2 from, Ship t, DefenseLevel level, string art = "cannonball"){
       var go = new GameObject("Cannonball"); go.transform.position = from;
       var p = go.AddComponent<Projectile>(); p.target = t; p.L = level; p.splash = level.splash > 0f;
       p.aim = t.transform.position;
@@ -12,11 +13,13 @@ namespace Tidewatch {
         float flight = Vector2.Distance(from, p.aim) / level.projectileSpeed;
         p.aim = t.lane.Pos(t.dist + t.Speed * flight);
       }
-      Art.Make(go.transform, "cannonball", Art.Circle, Vector2.one * (p.splash ? 0.32f : 0.2f), new Color(0.15f, 0.15f, 0.18f), 20);
+      Art.Make(go.transform, art, Art.Circle, Vector2.one * (p.splash ? 0.32f : 0.2f), level.slow > 0f ? new Color(0.55f, 0.55f, 0.6f) : new Color(0.15f, 0.15f, 0.18f), 20);
     }
     void Update(){
       if (!splash && target && !target.Dead) aim = target.transform.position;
-      var pos = Vector2.MoveTowards(transform.position, aim, L.projectileSpeed * Time.deltaTime); transform.position = pos;
+      Vector2 prev = transform.position;
+      var pos = Vector2.MoveTowards(prev, aim, L.projectileSpeed * Time.deltaTime); transform.position = pos;
+      var mv = pos - prev; if (mv.sqrMagnitude > 1e-8f) transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(mv.y, mv.x) * Mathf.Rad2Deg);   // chain shot faces its flight
       if ((pos - aim).sqrMagnitude > 0.0025f) return;
       if (splash){
         var g = Game.I;
