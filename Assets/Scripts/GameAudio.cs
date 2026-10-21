@@ -20,12 +20,17 @@ namespace Tidewatch {
       I = this;
       musA = NewSource(true); musB = NewSource(true); sfx = NewSource(false); sfx.volume = 1f; active = musA;   // one-shots scale by PlayOneShot volume; source must be at 1
       theme = Clip("Music/theme_shanty_loop"); battle = Clip("Music/battle_loop");
-      void R(string id, string file, float v, float gap){ rules[id] = new Rule{ clip = Clip(file), vol = v, minGap = gap }; }
+      // "a|b": use the first file that exists (dedicated M2 sounds fall back to M1 clips until Audio Dev adds them)
+      void R(string id, string files, float v, float gap){ AudioClip c = null; foreach (var f in files.Split('|')) if (!c) c = Clip(f); rules[id] = new Rule{ clip = c, vol = v, minGap = gap }; }
       R("cannon_fire", "SFX/cannon_fire", 0.5f, 0.08f); R("gunboat_fire", "SFX/gunboat_fire", 0.35f, 0.08f);
       R("ball_hit", "SFX/ball_hit", 0.4f, 0.06f); R("ship_sink", "SFX/ship_sink", 0.6f, 0.12f);
       R("harbor_breach", "SFX/harbor_breach", 0.8f, 0.3f); R("coin", "SFX/coin", 0.5f, 0.1f);
       R("build", "SFX/build", 0.6f, 0.1f); R("upgrade", "SFX/upgrade", 0.6f, 0.1f); R("sell", "SFX/sell", 0.6f, 0.1f);
       R("wave_horn", "SFX/wave_horn", 0.7f, 1f); R("ui_click", "SFX/ui_click", 0.35f, 0.08f); R("ui_error", "SFX/ui_error", 0.5f, 0.2f);
+      R("mortar_fire", "SFX/mortar_fire|SFX/cannon_fire", 0.6f, 0.15f); R("mortar_impact", "SFX/mortar_impact|SFX/ball_hit", 0.55f, 0.12f);
+      R("chain_fire", "SFX/chainshot_fire|SFX/cannon_fire", 0.4f, 0.1f); R("net_cast", "SFX/net_cast", 0.4f, 0.8f);
+      R("raft_blast", "SFX/fireraft_explode|SFX/harbor_breach", 0.75f, 0.2f); R("galleon_horn", "SFX/galleon_horn|SFX/wave_horn", 0.8f, 1f);
+      R("launch", "SFX/galleon_horn|SFX/wave_horn", 0.35f, 0.8f); R("ship_move", "SFX/ship_move|SFX/build", 0.6f, 0.2f);
       R("victory", "Music/victory_sting", 0.8f, 1f); R("defeat", "Music/defeat_sting", 0.8f, 1f);
     }
     AudioSource NewSource(bool loop){ var a = gameObject.AddComponent<AudioSource>(); a.playOnAwake = false; a.loop = loop; a.volume = 0; return a; }
@@ -41,7 +46,7 @@ namespace Tidewatch {
       var g = Game.I;
       if (g){
         if (g.State != lastState){ lastState = g.State; if (g.State == GameState.Won) Play("victory"); else if (g.State == GameState.Lost) Play("defeat"); }
-        Music(g.State != GameState.Playing ? null : g.InBattle && battle ? battle : theme);
+        Music(g.State == GameState.Menu ? theme : g.State != GameState.Playing ? null : g.InBattle && battle ? battle : theme);
       }
       float step = Time.unscaledDeltaTime / Mathf.Max(0.05f, crossfade);
       var other = active == musA ? musB : musA;

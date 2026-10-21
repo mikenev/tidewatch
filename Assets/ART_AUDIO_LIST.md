@@ -68,3 +68,9 @@ Same convention as Broomstick Bash: **.ogg Vorbis, 44.1 kHz**, peaks at or below
 | `SFX/wave_horn.ogg` | 1-2 s | Wave starts |
 | `SFX/ui_click.ogg` | < 0.15 s | Any button |
 | `SFX/ui_error.ogg` | < 0.3 s | Not enough gold |
+
+## M2 additions (optional; the game falls back until these exist)
+| File | Size / length | Notes |
+|---|---|---|
+| `Sprites/tower_chain_barrel.png` | 80 x 32 px | Chain-Shot Post rotating barrel, pivot at left-centre (0, 0.5) like the cannon barrel |
+| `Audio/SFX/mortar_fire.ogg`, `mortar_impact.ogg`, `chainshot_fire.ogg`, `net_cast.ogg`, `fireraft_explode.ogg`, `galleon_horn.ogg`, `ship_move.ogg` | delivered (PR #2) | Wired in `GameAudio`; each falls back to an M1 clip if missing |
