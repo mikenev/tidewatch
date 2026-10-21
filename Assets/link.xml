@@ -1,0 +1,17 @@
+<linker>
+  <!-- Keep physics/collider types that are only added from code or editor setup (WebGL stripping). -->
+  <assembly fullname="UnityEngine.PhysicsModule">
+    <type fullname="UnityEngine.BoxCollider" preserve="all"/>
+    <type fullname="UnityEngine.SphereCollider" preserve="all"/>
+    <type fullname="UnityEngine.CapsuleCollider" preserve="all"/>
+    <type fullname="UnityEngine.MeshCollider" preserve="all"/>
+    <type fullname="UnityEngine.Rigidbody" preserve="all"/>
+  </assembly>
+  <assembly fullname="UnityEngine.Physics2DModule">
+    <type fullname="UnityEngine.BoxCollider2D" preserve="all"/>
+    <type fullname="UnityEngine.CircleCollider2D" preserve="all"/>
+    <type fullname="UnityEngine.CapsuleCollider2D" preserve="all"/>
+    <type fullname="UnityEngine.Rigidbody2D" preserve="all"/>
+  </assembly>
+  <assembly fullname="Assembly-CSharp" preserve="all"/>
+</linker>
