@@ -32,6 +32,8 @@ namespace Tidewatch {
         for (int i = 0; i < 4; i++) Art.Make(city, null, Art.Square, new Vector2(0.45f, 0.45f), i % 2 == 0 ? new Color(0.8f, 0.3f, 0.25f) : new Color(0.3f, 0.45f, 0.75f), -4, new Vector2(i % 2 == 0 ? -0.3f : 0.3f, 1.05f - i * 0.7f));
         Art.Make(city, null, Art.Square, new Vector2(0.9f, 0.3f), new Color(0.5f, 0.35f, 0.2f), -4, new Vector2(0.9f, 0f));   // pier
       }
+      if (isl.HasFog) FogBank.Create(root, isl.fog.pos, isl.fog.radius);
+      if (isl.night) Weather.Create(root);
       for (int i = 0; i < isl.slots.Length; i++){
         var go = new GameObject(); go.transform.SetParent(root, false); go.transform.position = isl.slots[i].pos;
         var s = go.AddComponent<BuildSlot>(); s.Init(isl.slots[i].type, i); g.Slots.Add(s);

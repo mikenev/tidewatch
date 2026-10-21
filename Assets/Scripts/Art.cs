@@ -33,6 +33,15 @@ namespace Tidewatch {
       return s;
     }
     public static bool Has(string name) => Load(name);
+    static readonly Dictionary<string, Sprite[]> frames = new();
+    /// <summary>All frames of a sliced sheet (Resources/Sprites/name, Multiple), sorted by name; empty if missing.</summary>
+    public static Sprite[] Frames(string name){
+      if (!frames.TryGetValue(name, out var f)){
+        f = Resources.LoadAll<Sprite>("Sprites/" + name);
+        System.Array.Sort(f, (a, b) => string.CompareOrdinal(a.name, b.name)); frames[name] = f;
+      }
+      return f;
+    }
     /// <summary>Per-island multiply tint for the shared sprites (real art only; the island background stays untinted).</summary>
     public static Color Tint = Color.white;
     /// <summary>Child sprite: the named art if present, else `fallback` tinted and scaled to `size` world units.</summary>

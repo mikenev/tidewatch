@@ -4,8 +4,10 @@ namespace Tidewatch {
   public class Lane {
     public readonly string id; public readonly string[] sizes; public readonly Vector2[] points; readonly float[] cum;
     public float Length { get; }
+    /// <summary>Speed multiplier for ships on this lane (a fast current).</summary>
+    public readonly float Current;
     public Lane(LaneDef d){
-      id = d.id; sizes = d.sizes; points = d.points; cum = new float[points.Length];
+      id = d.id; sizes = d.sizes; points = d.points; cum = new float[points.Length]; Current = d.current > 0f ? d.current : 1f;
       for (int i = 1; i < points.Length; i++) cum[i] = cum[i - 1] + Vector2.Distance(points[i - 1], points[i]);
       Length = cum[points.Length - 1];
     }

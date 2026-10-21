@@ -6,9 +6,13 @@ namespace Tidewatch {
     public EnemyDef def; public Lane lane; public int wave; public float dist, hp; public bool Dead;
     public float Remaining => lane.Length - dist;
     public float SpeedMul => Time.time > slowUntil ? 1f : slowFactor;
-    public float Speed => def.speed * SpeedMul;
+    public float Speed => def.speed * SpeedMul * lane.Current;
+    /// <summary>Inside the island's fog bank.</summary>
+    public bool InFog { get; private set; }
+    bool hidden;
     SpriteRenderer body; Transform bodyT, bar; Color baseColor; float flash, sinkT = -1f, slowFactor = 1f, slowUntil = -1f;
     int launches; bool realArt;
+    public int Launches => launches;
 
     public void Init(EnemyDef d, Lane l, int w, float startDist = 0f){
       def = d; lane = l; wave = w; hp = d.hp; dist = startDist;
@@ -45,6 +49,7 @@ namespace Tidewatch {
       dist += Speed * Time.deltaTime;
       if (dist >= lane.Length){ Game.I.ShipReachedHarbor(this); return; }
       Place();
+      UpdateFog();
       if (def.blastRange > 0f){ var near = Game.I.NearestDefense(transform.position, def.blastRange); if (near){ Game.I.RaftExploded(this, near); return; } }
       Color c = SpeedMul < 1f ? Color.Lerp(baseColor, new Color(0.6f, 0.75f, 1f), 0.45f) : baseColor;   // slowed: blue tint
       if (flash > 0f){ flash -= Time.deltaTime; if (flash > 0f) c = Color.Lerp(c, Color.white, 0.6f); }
@@ -59,15 +64,27 @@ namespace Tidewatch {
     public void Damage(float dmg, float pierce = 0f){
       if (Dead) return;
       hp -= dmg * (1f - def.armor * (1f - Mathf.Clamp01(pierce))); flash = 0.1f; GameEvents.Play("ball_hit");
-      bar.parent.gameObject.SetActive(true);
+      if (!hidden) bar.parent.gameObject.SetActive(true);
       float f = Mathf.Clamp01(hp / def.hp), bw = def.boss ? 2f : 0.8f;
       bar.localScale = new Vector3(bw * f / Art.Square.bounds.size.x, bar.localScale.y, 1); bar.localPosition = new Vector3(-bw * 0.5f * (1f - f), 0);
-      if (hp <= 0f){ Game.I.ShipSunk(this); return; }
       if (!string.IsNullOrEmpty(def.spawnEnemy) && def.spawnEvery > 0f){
-        int due = Mathf.FloorToInt((1f - hp / def.hp) / def.spawnEvery);
+        // every launch owed so far, including the ones a single killing blow skips past (fire them before sinking)
+        // thresholds every spawnEvery of max hp, below 100% (0.2 -> 4 launches), whether it dies slowly or in one hit
+        int max = Mathf.CeilToInt(1f / def.spawnEvery - 1e-4f) - 1;
+        int due = Mathf.Min(max, Mathf.FloorToInt((1f - Mathf.Max(0f, hp) / def.hp) / def.spawnEvery + 1e-4f));
         while (launches < due){ launches++; Game.I.Launch(this, def.spawnEnemy, def.spawnCount); }
       }
+      if (hp <= 0f) Game.I.ShipSunk(this);
     }
-    public void Sink(){ sinkT = 0f; if (bar) bar.parent.gameObject.SetActive(false); }
+    /// <summary>Fog bank: hidden (ship and HP bar) unless a defense is within fogReveal.</summary>
+    void UpdateFog(){
+      var isl = Game.I.Island; InFog = isl.HasFog && Vector2.Distance(transform.position, isl.fog.pos) < isl.fog.radius;
+      bool hide = InFog && !Game.I.DefenseWithin(transform.position, isl.fogReveal);
+      if (hide == hidden) return;
+      hidden = hide; bodyT.gameObject.SetActive(!hide);
+      Game.I.LogOnce(hide ? "fogH" : "fogR", $"[TW] fog: {def.id} {(hide ? "hidden" : "revealed")}");
+      if (bar) bar.parent.gameObject.SetActive(!hide && (def.boss || hp < def.hp));
+    }
+    public void Sink(){ if (hidden){ hidden = false; bodyT.gameObject.SetActive(true); } sinkT = 0f; if (bar) bar.parent.gameObject.SetActive(false); }
   }
 }
