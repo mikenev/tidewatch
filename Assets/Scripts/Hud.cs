@@ -158,6 +158,10 @@ namespace Tidewatch {
           Box(new Rect(panel.x, panel.y - 44, Mathf.Min(W - panel.x, 700), 40), new Color(0.05f, 0.2f, 0.3f, 0.75f));
           GUI.Label(new Rect(panel.x, panel.y - 40, W, 36), panelTitle, label);
         }
+        if (g.Hint != null && Time.unscaledTime < g.HintUntil && !g.Paused){   // one-off gameplay hint under the top bar
+          Box(new Rect(W * 0.5f - 300, Bh + Pad * 2 + 10, 600, 50), new Color(0.35f, 0.12f, 0.05f, 0.85f));
+          GUI.Label(new Rect(W * 0.5f - 300, Bh + Pad * 2 + 10, 600, 50), g.Hint, center);
+        }
         if (g.Paused){ Box(new Rect(0, Bh + Pad * 2, W, H), new Color(0, 0, 0, 0.5f)); GUI.Label(new Rect(0, H * 0.5f - 80, W, 80), "Paused", big); }
       } else {
         bool won = g.State == GameState.Won;

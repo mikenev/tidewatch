@@ -6,7 +6,10 @@ namespace Tidewatch {
   /// WebGL autoplay: nothing plays until the first key, click or touch; the unlock persists across restarts.</summary>
   public class GameAudio : MonoBehaviour {
     public static GameAudio I;
-    [Range(0, 1)] public float musicVolume = 0.35f, sfxVolume = 0.85f;
+    [Range(0, 1)] public float musicVolume = 0.35f, sfxVolume = 0.75f;
+    /// <summary>Voice cap so late fights don't clip: at most MaxSame of one clip and MaxTotal one-shots at once.</summary>
+    const int MaxSame = 2, MaxTotal = 8;
+    readonly List<(float end, AudioClip clip)> voices = new();
     public float crossfade = 1.2f;
     static bool unlocked;
     public bool Unlocked => unlocked;
@@ -67,6 +70,10 @@ namespace Tidewatch {
       if (!unlocked || !rules.TryGetValue(id, out var r) || !r.clip) return;
       float now = Time.unscaledTime;
       if (last.TryGetValue(id, out var t) && now - t < r.minGap) return;
+      voices.RemoveAll(v => v.end <= now);
+      int same = 0; foreach (var v in voices) if (v.clip == r.clip) same++;
+      if (same >= MaxSame || voices.Count >= MaxTotal) return;
+      voices.Add((now + r.clip.length, r.clip));
       last[id] = now; sfx.PlayOneShot(r.clip, r.vol * sfxVolume);
     }
   }

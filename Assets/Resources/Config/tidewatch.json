@@ -14,7 +14,7 @@
   },
   {
    "island": "storm_isle",
-   "tint": "#C8D2E8"
+   "tint": "#E0E6F2"
   }
  ],
  "enemies": [
@@ -640,6 +640,40 @@
        "x": -7.6,
        "y": 0.0
       }
+     ],
+     "largePoints": [
+      {
+       "x": 10.4,
+       "y": -3.1
+      },
+      {
+       "x": 6.6,
+       "y": -3.1
+      },
+      {
+       "x": 5.6,
+       "y": -1.2
+      },
+      {
+       "x": 2.0,
+       "y": -2.6
+      },
+      {
+       "x": -0.6,
+       "y": -2.8
+      },
+      {
+       "x": -2.0,
+       "y": 0.2
+      },
+      {
+       "x": -4.5,
+       "y": -0.4
+      },
+      {
+       "x": -7.6,
+       "y": 0.0
+      }
      ]
     }
    ],
@@ -962,6 +996,553 @@
      ]
     }
    ]
+  },
+  {
+   "id": "storm_isle",
+   "name": "Storm Isle",
+   "background": "stormisle_bg",
+   "hearts": 20,
+   "startGold": 260,
+   "waveGap": 20,
+   "earlyGoldPerSecond": 1.0,
+   "harbor": {
+    "x": -7.6,
+    "y": 0.0
+   },
+   "palette": {
+    "sea": "#16283C",
+    "shallows": "#78909F",
+    "sand": "#5A5E68",
+    "grass": "#34524A",
+    "reef": "#1C2028"
+   },
+   "lanes": [
+    {
+     "id": "north",
+     "sizes": [
+      "small",
+      "medium",
+      "large"
+     ],
+     "points": [
+      {
+       "x": 10.4,
+       "y": 4.0
+      },
+      {
+       "x": 5.6,
+       "y": 4.1
+      },
+      {
+       "x": 1.6,
+       "y": 3.6
+      },
+      {
+       "x": -2.6,
+       "y": 3.4
+      },
+      {
+       "x": -5.0,
+       "y": 1.6
+      },
+      {
+       "x": -7.6,
+       "y": 0.0
+      }
+     ]
+    },
+    {
+     "id": "middle",
+     "sizes": [
+      "small",
+      "medium",
+      "large"
+     ],
+     "points": [
+      {
+       "x": 10.4,
+       "y": 0.4
+      },
+      {
+       "x": 6.4,
+       "y": 1.2
+      },
+      {
+       "x": 3.8,
+       "y": -0.6
+      },
+      {
+       "x": 0.6,
+       "y": 0.6
+      },
+      {
+       "x": -2.4,
+       "y": 0.0
+      },
+      {
+       "x": -5.0,
+       "y": 0.0
+      },
+      {
+       "x": -7.6,
+       "y": 0.0
+      }
+     ]
+    },
+    {
+     "id": "south_current",
+     "sizes": [
+      "small",
+      "medium"
+     ],
+     "points": [
+      {
+       "x": 10.4,
+       "y": -4.2
+      },
+      {
+       "x": 5.0,
+       "y": -4.0
+      },
+      {
+       "x": 0.8,
+       "y": -3.6
+      },
+      {
+       "x": -3.4,
+       "y": -2.6
+      },
+      {
+       "x": -5.6,
+       "y": -1.2
+      },
+      {
+       "x": -7.6,
+       "y": 0.0
+      }
+     ],
+     "current": 1.5
+    }
+   ],
+   "land": [
+    {
+     "pos": {
+      "x": 4.0,
+      "y": 2.2
+     },
+     "radius": 1.0
+    },
+    {
+     "pos": {
+      "x": 6.6,
+      "y": -1.8
+     },
+     "radius": 1.0
+    },
+    {
+     "pos": {
+      "x": 1.8,
+      "y": -1.8
+     },
+     "radius": 1.0
+    },
+    {
+     "pos": {
+      "x": -0.6,
+      "y": 2.0
+     },
+     "radius": 0.8
+    },
+    {
+     "pos": {
+      "x": -2.6,
+      "y": 1.6
+     },
+     "radius": 0.6
+    },
+    {
+     "pos": {
+      "x": -3.0,
+      "y": -1.2
+     },
+     "radius": 0.7
+    },
+    {
+     "pos": {
+      "x": 8.4,
+      "y": 2.6
+     },
+     "radius": 0.7
+    }
+   ],
+   "reefs": [],
+   "slots": [
+    {
+     "type": "land",
+     "pos": {
+      "x": 4.0,
+      "y": 2.4
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": 6.6,
+      "y": -1.5
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": 1.8,
+      "y": -1.5
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": -0.6,
+      "y": 2.0
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": -2.6,
+      "y": 1.6
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": -3.0,
+      "y": -1.2
+     }
+    },
+    {
+     "type": "land",
+     "pos": {
+      "x": 8.4,
+      "y": 2.6
+     }
+    },
+    {
+     "type": "buoy",
+     "pos": {
+      "x": 7.6,
+      "y": 0.0
+     }
+    },
+    {
+     "type": "buoy",
+     "pos": {
+      "x": 0.2,
+      "y": -0.6
+     }
+    },
+    {
+     "type": "buoy",
+     "pos": {
+      "x": -1.0,
+      "y": -2.6
+     }
+    },
+    {
+     "type": "buoy",
+     "pos": {
+      "x": 3.6,
+      "y": -3.0
+     }
+    },
+    {
+     "type": "buoy",
+     "pos": {
+      "x": -6.4,
+      "y": 2.0
+     }
+    }
+   ],
+   "waves": [
+    {
+     "bonus": 40,
+     "groups": [
+      {
+       "enemy": "dinghy",
+       "lane": "middle",
+       "count": 6,
+       "interval": 1.0,
+       "delay": 0
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 3,
+       "interval": 1.2,
+       "delay": 5
+      }
+     ]
+    },
+    {
+     "bonus": 45,
+     "groups": [
+      {
+       "enemy": "sloop",
+       "lane": "north",
+       "count": 3,
+       "interval": 2.2,
+       "delay": 0
+      },
+      {
+       "enemy": "sloop",
+       "lane": "middle",
+       "count": 2,
+       "interval": 2.4,
+       "delay": 5
+      }
+     ]
+    },
+    {
+     "bonus": 50,
+     "groups": [
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 8,
+       "interval": 0.8,
+       "delay": 0
+      },
+      {
+       "enemy": "sloop",
+       "lane": "middle",
+       "count": 3,
+       "interval": 2.2,
+       "delay": 3
+      }
+     ]
+    },
+    {
+     "bonus": 55,
+     "groups": [
+      {
+       "enemy": "brig",
+       "lane": "north",
+       "count": 1,
+       "interval": 4.0,
+       "delay": 0
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "middle",
+       "count": 8,
+       "interval": 0.7,
+       "delay": 3
+      }
+     ]
+    },
+    {
+     "bonus": 60,
+     "groups": [
+      {
+       "enemy": "fireraft",
+       "lane": "middle",
+       "count": 3,
+       "interval": 2.5,
+       "delay": 0
+      },
+      {
+       "enemy": "sloop",
+       "lane": "south_current",
+       "count": 3,
+       "interval": 2.0,
+       "delay": 2
+      }
+     ]
+    },
+    {
+     "bonus": 65,
+     "groups": [
+      {
+       "enemy": "sloop",
+       "lane": "north",
+       "count": 3,
+       "interval": 1.8,
+       "delay": 0
+      },
+      {
+       "enemy": "sloop",
+       "lane": "middle",
+       "count": 4,
+       "interval": 1.8,
+       "delay": 1
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 8,
+       "interval": 0.6,
+       "delay": 4
+      }
+     ]
+    },
+    {
+     "bonus": 70,
+     "groups": [
+      {
+       "enemy": "brig",
+       "lane": "middle",
+       "count": 3,
+       "interval": 3.0,
+       "delay": 0
+      },
+      {
+       "enemy": "fireraft",
+       "lane": "south_current",
+       "count": 3,
+       "interval": 2.2,
+       "delay": 3
+      }
+     ]
+    },
+    {
+     "bonus": 75,
+     "groups": [
+      {
+       "enemy": "dinghy",
+       "lane": "north",
+       "count": 12,
+       "interval": 0.5,
+       "delay": 0
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 12,
+       "interval": 0.5,
+       "delay": 2
+      },
+      {
+       "enemy": "brig",
+       "lane": "middle",
+       "count": 2,
+       "interval": 3.0,
+       "delay": 5
+      }
+     ]
+    },
+    {
+     "bonus": 80,
+     "groups": [
+      {
+       "enemy": "sloop",
+       "lane": "middle",
+       "count": 10,
+       "interval": 1.3,
+       "delay": 0
+      },
+      {
+       "enemy": "fireraft",
+       "lane": "north",
+       "count": 4,
+       "interval": 2.4,
+       "delay": 4
+      }
+     ]
+    },
+    {
+     "bonus": 85,
+     "groups": [
+      {
+       "enemy": "brig",
+       "lane": "north",
+       "count": 3,
+       "interval": 2.8,
+       "delay": 0
+      },
+      {
+       "enemy": "brig",
+       "lane": "middle",
+       "count": 3,
+       "interval": 2.8,
+       "delay": 2
+      },
+      {
+       "enemy": "sloop",
+       "lane": "south_current",
+       "count": 8,
+       "interval": 1.4,
+       "delay": 4
+      }
+     ]
+    },
+    {
+     "bonus": 90,
+     "groups": [
+      {
+       "enemy": "fireraft",
+       "lane": "middle",
+       "count": 5,
+       "interval": 1.8,
+       "delay": 0
+      },
+      {
+       "enemy": "sloop",
+       "lane": "north",
+       "count": 9,
+       "interval": 1.2,
+       "delay": 2
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 14,
+       "interval": 0.45,
+       "delay": 3
+      }
+     ]
+    },
+    {
+     "bonus": 100,
+     "groups": [
+      {
+       "enemy": "sloop",
+       "lane": "north",
+       "count": 8,
+       "interval": 1.4,
+       "delay": 0
+      },
+      {
+       "enemy": "brig",
+       "lane": "middle",
+       "count": 4,
+       "interval": 2.4,
+       "delay": 3
+      },
+      {
+       "enemy": "galleon",
+       "lane": "middle",
+       "count": 1,
+       "interval": 1.0,
+       "delay": 14
+      },
+      {
+       "enemy": "dinghy",
+       "lane": "south_current",
+       "count": 14,
+       "interval": 0.5,
+       "delay": 6
+      }
+     ]
+    }
+   ],
+   "fog": {
+    "pos": {
+     "x": 4.2,
+     "y": -0.2
+    },
+    "radius": 1.8
+   },
+   "night": true,
+   "fogReveal": 1.6
   }
  ]
 }

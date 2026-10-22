@@ -20,6 +20,12 @@ namespace Tidewatch {
     public readonly List<Lane> Lanes = new();
     public readonly List<BuildSlot> Slots = new();
     public readonly List<Ship> Ships = new();
+    readonly HashSet<string> onceLogs = new();
+    bool armoredHintShown;
+    /// <summary>One-off gameplay hint shown by the HUD until HintUntil (unscaled time).</summary>
+    public string Hint { get; private set; } public float HintUntil { get; private set; }
+    /// <summary>Log a line once per island run (fog/current proofs for the smoke test without log spam).</summary>
+    public void LogOnce(string key, string msg){ if (onceLogs.Add(key)) Debug.Log(msg); }
     public int Gold { get; private set; }
     public int Hearts { get; private set; }
     public GameState State { get; private set; } = GameState.Menu;
@@ -52,7 +58,7 @@ namespace Tidewatch {
 
     public void StartIsland(int index){
       if (State != GameState.Menu || index < 0 || index >= Cfg.islands.Length || !Progress.Unlocked(Cfg, index)) return;
-      IslandIndex = index; Island = Cfg.islands[index];
+      IslandIndex = index; Island = Cfg.islands[index]; onceLogs.Clear();
       Gold = Island.startGold; Hearts = Island.hearts;
       int n = Island.waves.Length; alive = new int[n]; groupsLeft = new int[n]; bonusPaid = new bool[n];
       foreach (var l in Island.lanes) Lanes.Add(new Lane(l));
@@ -92,10 +98,19 @@ namespace Tidewatch {
           if (kb.digit1Key.wasPressedThisFrame) StartIsland(0);
           if (kb.digit2Key.wasPressedThisFrame) StartIsland(1);
           if (kb.digit3Key.wasPressedThisFrame) StartIsland(2);
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+          if (kb.uKey.wasPressedThisFrame){ foreach (var isl in Cfg.islands) Progress.Record(isl.id, 1); ToMenu(); }   // dev: unlock all
+#endif
         } else if (State == GameState.Playing){
           if (kb.spaceKey.wasPressedThisFrame) CallWave();   // ignored while paused (CanCallWave)
           if (kb.pKey.wasPressedThisFrame || kb.escapeKey.wasPressedThisFrame) TogglePause();
           if (kb.fKey.wasPressedThisFrame) ToggleSpeed();
+#if DEVELOPMENT_BUILD || UNITY_EDITOR
+          if (kb.kKey.wasPressedThisFrame){   // dev: galleon test - spawn one, take it to 85% hp, then sink it with a single hit
+            var gd = Cfg.Enemy("galleon"); var gl = LaneFor(gd, null);
+            if (gl != null){ var g = SpawnShip(gd, gl, 0, gl.Length * 0.3f); g.Damage(gd.hp * 0.15f, 1f); Debug.Log($"[TW] dev: one-shot galleon at hp={g.hp:0}"); g.Damage(gd.hp * 5f, 1f); }
+          }
+#endif
         } else if (kb.rKey.wasPressedThisFrame || kb.enterKey.wasPressedThisFrame) Restart();
       }
       if (!PointerInput.TryPress(out var screen)) return;
@@ -126,6 +141,8 @@ namespace Tidewatch {
       groupsLeft[w] = wd.groups.Length; spawningGroups += wd.groups.Length;
       foreach (var g in wd.groups) StartCoroutine(SpawnGroup(w, g));
       GameEvents.Play("wave_horn");
+      if (!armoredHintShown) foreach (var g in wd.groups){ var e = Cfg.Enemy(g.enemy); if (e != null && e.armor > 0f && !e.boss){
+        armoredHintShown = true; Hint = "Armored: use mortars or chain shot"; HintUntil = Time.unscaledTime + 6f; Debug.Log($"[TW] hint wave {w + 1}: {Hint}"); break; } }
       Debug.Log($"[TW] wave {w + 1}/{TotalWaves} started early={calledByPlayer} earlyBonus={bonus} gold={Gold}");
     }
     IEnumerator SpawnGroup(int w, SpawnGroup g){
@@ -147,24 +164,26 @@ namespace Tidewatch {
       return ok.Count == 0 ? null : ok[Random.Range(0, ok.Count)];
     }
     Ship SpawnShip(EnemyDef def, Lane lane, int w, float dist){
+      if (def.size == "large" && lane.Large != null) lane = lane.Large;   // size-specific path (keeps big hulls off islands)
       var go = new GameObject(def.id); var s = go.AddComponent<Ship>(); s.Init(def, lane, w, dist);
       Ships.Add(s); alive[w]++;
+      if (lane.Current != 1f) LogOnce("cur" + lane.id + def.id, $"[TW] current lane={lane.id} x{lane.Current:0.##} {def.id} speed={s.Speed:0.##} base={def.speed:0.##}");
       if (def.boss){ GameEvents.Play("galleon_horn"); Debug.Log($"[TW] boss {def.id} spawned on lane {lane.id}"); }
       return s;
     }
     /// <summary>Dread Galleon: launch `count` ships at the parent's position (its own lane if their size may use it).</summary>
     public void Launch(Ship parent, string enemyId, int count){
       var def = Cfg.Enemy(enemyId); if (def == null || State != GameState.Playing) return;
-      var lane = parent.lane.Allows(def.size) ? parent.lane : LaneFor(def, null); if (lane == null) return;
-      float d0 = lane == parent.lane ? parent.dist : 0f;
+      var lane = parent.lane.Base.Allows(def.size) ? parent.lane.Base : LaneFor(def, null); if (lane == null) return;
+      float d0 = lane == parent.lane.Base ? Mathf.Clamp01(parent.dist / parent.lane.Length) * lane.Length : 0f;
       for (int i = 0; i < count; i++) SpawnShip(def, lane, parent.wave, Mathf.Clamp(d0 + 0.35f * (i - (count - 1) * 0.5f), 0f, lane.Length - 0.1f));
       GameEvents.Play("launch");
       Debug.Log($"[TW] {parent.def.id} launched {count} {def.id} hp={Mathf.Max(0, parent.hp):0}");
     }
     public void ShipSunk(Ship s){
       if (s.Dead) return; s.Dead = true; Ships.Remove(s); alive[s.wave]--;
-      AddGold(s.def.gold); GameEvents.Play("ship_sink"); s.Sink();
-      if (s.def.boss) Debug.Log($"[TW] boss {s.def.id} sunk gold={Gold}");
+      AddGold(s.def.gold); GameEvents.Play("ship_sink"); s.Sink(); Fx.Splash(s.transform.position, s.def.boss ? 1.2f : 0.5f);
+      if (s.def.boss) Debug.Log($"[TW] boss {s.def.id} sunk gold={Gold} launches={s.Launches}");
     }
     public void ShipReachedHarbor(Ship s){
       if (s.Dead) return; s.Dead = true; Ships.Remove(s); alive[s.wave]--;
@@ -182,10 +201,13 @@ namespace Tidewatch {
     /// <summary>Ship in range that is furthest along its lane (least distance left to the harbor).</summary>
     public Ship FindTarget(Vector2 from, float range){
       Ship best = null; float bestRem = float.MaxValue, r2 = range * range;
+      float fog2 = Island.fogReveal * Island.fogReveal;
       foreach (var s in Ships){
-        if (s.Dead || ((Vector2)s.transform.position - from).sqrMagnitude > r2) continue;
+        float d2 = ((Vector2)s.transform.position - from).sqrMagnitude;
+        if (s.Dead || d2 > r2 || (s.InFog && d2 > fog2)) continue;   // fog bank: only seen from close by
         if (s.Remaining < bestRem){ bestRem = s.Remaining; best = s; }
       }
+      if (best && best.InFog) LogOnce("fogT", $"[TW] fog: targeted {best.def.id} at close range");
       return best;
     }
     /// <summary>Copy of the live ships within range (safe to damage while iterating).</summary>
@@ -193,6 +215,10 @@ namespace Tidewatch {
       var l = new List<Ship>(); float r2 = range * range;
       foreach (var s in Ships) if (!s.Dead && ((Vector2)s.transform.position - at).sqrMagnitude <= r2) l.Add(s);
       return l;
+    }
+    public bool DefenseWithin(Vector2 at, float range){
+      foreach (var s in Slots) if (s.defense && Vector2.Distance(at, s.transform.position) <= range) return true;
+      return false;
     }
     /// <summary>Nearest working defense within range, or null.</summary>
     public Defense NearestDefense(Vector2 at, float range){
@@ -253,8 +279,19 @@ namespace Tidewatch {
     void EndGame(GameState s){
       if (State != GameState.Playing) return;
       State = s; CancelMove(); Select(null); ApplyTime();
+      ClearBattlefield();
       if (s == GameState.Won){ StarsEarned = Cfg.Stars(Hearts, Island.hearts); Progress.Record(Island.id, StarsEarned); }
       Debug.Log($"[TW] {(s == GameState.Won ? "WON" : "LOST")} island={Island.id} hearts={Hearts} stars={StarsEarned} gold={Gold} waves={WavesStarted}");
+    }
+    /// <summary>End screen: remove every ship (live or mid-sink), cannonball and effect so nothing shows frozen behind it.</summary>
+    void ClearBattlefield(){
+      StopAllCoroutines();
+      int n = 0;
+      foreach (var sh in FindObjectsByType<Ship>(FindObjectsSortMode.None)){ Destroy(sh.gameObject); n++; }
+      foreach (var p in FindObjectsByType<Projectile>(FindObjectsSortMode.None)) Destroy(p.gameObject);
+      foreach (var f in FindObjectsByType<Fx>(FindObjectsSortMode.None)) Destroy(f.gameObject);
+      Ships.Clear();
+      Debug.Log($"[TW] end screen cleared ships={n}");
     }
     /// <summary>Replay the same island.</summary>
     public void Restart(){ pendingIsland = IslandIndex; Reload(); }

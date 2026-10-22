@@ -19,13 +19,19 @@ namespace Tidewatch {
   }
   [Serializable] public class IslandTint { public string island, tint; }
   [Serializable] public class Palette { public string sea, shallows, sand, grass, reef; }
-  [Serializable] public class LaneDef { public string id; public string[] sizes; public Vector2[] points; }
+  /// <summary>current: multiplies ship speed on this lane (0 or missing = 1).</summary>
+  /// <summary>largePoints (optional): a nudged path used only by large ships, e.g. to keep the Galleon's hull off an island.</summary>
+  [Serializable] public class LaneDef { public string id; public string[] sizes; public Vector2[] points; public float current; public Vector2[] largePoints; }
   [Serializable] public class LandDef { public Vector2 pos; public float radius; }
   [Serializable] public class SlotDef { public string type; public Vector2 pos; }
   [Serializable] public class SpawnGroup { public string enemy, lane; public int count; public float interval, delay; }
   [Serializable] public class WaveDef { public int bonus; public SpawnGroup[] groups; }
   [Serializable] public class IslandDef {
     public string id, name, background; public int hearts, startGold; public float waveGap, earlyGoldPerSecond;
+    /// <summary>fog: a fog bank (radius 0 = none). Ships inside it are hidden and can only be targeted by defenses within
+    /// fogReveal of them. night: dark overlay with rain and lightning.</summary>
+    public LandDef fog; public float fogReveal = 1.6f; public bool night;
+    public bool HasFog => fog != null && fog.radius > 0f;
     public Vector2 harbor; public Palette palette; public LaneDef[] lanes; public LandDef[] land, reefs; public SlotDef[] slots; public WaveDef[] waves;
   }
 
@@ -86,6 +92,8 @@ namespace Tidewatch {
         if (isl.waves == null || isl.waves.Length == 0) err.Add($"{isl.id}: no waves");
         if (isl.hearts <= 0) err.Add($"{isl.id}: hearts must be > 0");
         if (isl.slots == null || isl.slots.Length == 0) err.Add($"{isl.id}: no slots");
+        if (isl.lanes != null) foreach (var l in isl.lanes) if (l.current < 0) err.Add($"{isl.id}/{l.id}: current must be >= 0");
+        if (isl.HasFog && isl.fogReveal <= 0) err.Add($"{isl.id}: fogReveal must be > 0");
         if (isl.slots != null) foreach (var s in isl.slots) if (DefenseForSlot(s.type) == null) err.Add($"{isl.id}: no defense for slot type {s.type}");
         if (isl.waves != null) for (int w = 0; w < isl.waves.Length; w++){
           var wave = isl.waves[w];
