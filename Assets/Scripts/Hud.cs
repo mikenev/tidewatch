@@ -9,6 +9,8 @@ namespace Tidewatch {
     readonly List<Btn> btns = new(); readonly List<Rect> blockers = new();
     float s = 1f, W, H; Texture2D white; GUIStyle label, big, button, center;
     const float Bh = 72f, Pad = 10f, PanelBw = 220f;
+    /// <summary>Top bar: thinner than the bottom panel and see-through (alpha 0.5) so ships and health bars under it stay visible.</summary>
+    const float TopBh = 60f, TopH = TopBh + Pad * 2, TopAlpha = 0.5f;
     Rect panel; string panelTitle;
 
     void Awake(){ I = this; white = Texture2D.whiteTexture; }
@@ -44,14 +46,14 @@ namespace Tidewatch {
         Add(new Rect(W * 0.5f + 20, H * 0.5f + 40, 320, Bh + 8), "Island select", g.ToMenu);
         return;
       }
-      blockers.Add(new Rect(0, 0, W, Bh + Pad * 2));
-      float x = W - Pad - 120; Add(new Rect(x, Pad, 120, Bh), g.Paused ? "Resume" : "Pause", g.TogglePause, true, g.Paused ? null : "ui_icon_pause");
-      x -= 100 + Pad; Add(new Rect(x, Pad, 100, Bh), g.Fast ? "2x" : "1x", g.ToggleSpeed, !g.Paused, "ui_icon_speed");
+      blockers.Add(new Rect(0, 0, W, TopH));
+      float x = W - Pad - 120; Add(new Rect(x, Pad, 120, TopBh), g.Paused ? "Resume" : "Pause", g.TogglePause, true, g.Paused ? null : "ui_icon_pause");
+      x -= 100 + Pad; Add(new Rect(x, Pad, 100, TopBh), g.Fast ? "2x" : "1x", g.ToggleSpeed, !g.Paused, "ui_icon_speed");
       x -= 290 + Pad;
       string wl = g.WavesStarted == 0 ? "Start wave 1" : g.WavesStarted >= g.TotalWaves ? "Final wave" :
         g.CanCallWave || g.Countdown > 0f ? $"Call wave {g.WavesStarted + 1}" + (g.EarlyBonus > 0 ? $"  +{g.EarlyBonus}g" : "") +
           (g.Countdown > 0f ? $"\nauto in {Mathf.CeilToInt(g.Countdown)}s" : "") : "Wave incoming";
-      Add(new Rect(x, Pad, 290, Bh), wl, g.CallWave, g.CanCallWave, "ui_icon_wave");
+      Add(new Rect(x, Pad, 290, TopBh), wl, g.CallWave, g.CanCallWave, "ui_icon_wave");
       if (g.Paused){
         blockers.Add(new Rect(0, 0, W, H));
         Add(new Rect(W * 0.5f - 160, H * 0.5f + 20, 320, Bh + 8), "Resume", g.TogglePause);
@@ -99,6 +101,11 @@ namespace Tidewatch {
       center = new GUIStyle(label){ alignment = TextAnchor.MiddleCenter };
       button = new GUIStyle(label){ fontSize = 22, alignment = TextAnchor.MiddleCenter, wordWrap = true };
     }
+    /// <summary>Label with a soft dark drop shadow, legible over the see-through top bar.</summary>
+    void Shadow(Rect r, string text, GUIStyle st){
+      var old = st.normal.textColor; st.normal.textColor = new Color(0, 0, 0, 0.75f);
+      GUI.Label(new Rect(r.x + 2, r.y + 2, r.width, r.height), text, st); st.normal.textColor = old; GUI.Label(r, text, st);
+    }
     void Box(Rect r, Color c){ var old = GUI.color; GUI.color = c; GUI.DrawTexture(r, white); GUI.color = old; }
 
     // ---------- Art Dev UI sprites (Resources/Sprites/ui_*), drawn when present; flat boxes otherwise ----------
@@ -145,12 +152,12 @@ namespace Tidewatch {
         GUI.Label(new Rect(0, H * 0.5f - 200, W, 80), "Tidewatch", big);
         GUI.Label(new Rect(0, H * 0.5f - 120, W, 50), "Choose an island", center);
       } else if (g.State == GameState.Playing){
-        Box(new Rect(0, 0, W, Bh + Pad * 2), new Color(0.05f, 0.2f, 0.3f, 0.75f));
+        Box(new Rect(0, 0, W, TopH), new Color(0.05f, 0.2f, 0.3f, TopAlpha));
         if (Tex("ui_heart") && Tex("ui_gold")){
-          Icon(new Rect(Pad * 2, Pad + 14, 44, 44), "ui_heart", Color.white); GUI.Label(new Rect(Pad * 2 + 50, Pad, 70, Bh), $"{g.Hearts}", label);
-          Icon(new Rect(Pad * 2 + 125, Pad + 14, 44, 44), "ui_gold", Color.white); GUI.Label(new Rect(Pad * 2 + 175, Pad, 100, Bh), $"{g.Gold}", label);
-          GUI.Label(new Rect(Pad * 2 + 280, Pad, 200, Bh), $"Wave {g.WavesStarted}/{g.TotalWaves}", label);
-        } else GUI.Label(new Rect(Pad * 2, Pad, 480, Bh), $"Hearts {g.Hearts}   Gold {g.Gold}   Wave {g.WavesStarted}/{g.TotalWaves}", label);
+          Icon(new Rect(Pad * 2, Pad + 8, 44, 44), "ui_heart", Color.white); Shadow(new Rect(Pad * 2 + 50, Pad, 70, TopBh), $"{g.Hearts}", label);
+          Icon(new Rect(Pad * 2 + 125, Pad + 8, 44, 44), "ui_gold", Color.white); Shadow(new Rect(Pad * 2 + 175, Pad, 100, TopBh), $"{g.Gold}", label);
+          Shadow(new Rect(Pad * 2 + 280, Pad, 200, TopBh), $"Wave {g.WavesStarted}/{g.TotalWaves}", label);
+        } else Shadow(new Rect(Pad * 2, Pad, 480, TopBh), $"Hearts {g.Hearts}   Gold {g.Gold}   Wave {g.WavesStarted}/{g.TotalWaves}", label);
         if (!g.AnyBuilt && !g.Selected && !g.Paused)
           GUI.Label(new Rect(Pad * 2, H - 60, W, 50), "Tap a sandy plot or a red buoy to build. Then start the wave.", label);
         if (panelTitle != null && !g.Paused){
@@ -159,10 +166,10 @@ namespace Tidewatch {
           GUI.Label(new Rect(panel.x, panel.y - 40, W, 36), panelTitle, label);
         }
         if (g.Hint != null && Time.unscaledTime < g.HintUntil && !g.Paused){   // one-off gameplay hint under the top bar
-          Box(new Rect(W * 0.5f - 300, Bh + Pad * 2 + 10, 600, 50), new Color(0.35f, 0.12f, 0.05f, 0.85f));
-          GUI.Label(new Rect(W * 0.5f - 300, Bh + Pad * 2 + 10, 600, 50), g.Hint, center);
+          Box(new Rect(W * 0.5f - 300, TopH + 10, 600, 50), new Color(0.35f, 0.12f, 0.05f, 0.85f));
+          GUI.Label(new Rect(W * 0.5f - 300, TopH + 10, 600, 50), g.Hint, center);
         }
-        if (g.Paused){ Box(new Rect(0, Bh + Pad * 2, W, H), new Color(0, 0, 0, 0.5f)); GUI.Label(new Rect(0, H * 0.5f - 80, W, 80), "Paused", big); }
+        if (g.Paused){ Box(new Rect(0, TopH, W, H), new Color(0, 0, 0, 0.5f)); GUI.Label(new Rect(0, H * 0.5f - 80, W, 80), "Paused", big); }
       } else {
         bool won = g.State == GameState.Won;
         Box(new Rect(0, 0, W, H), won ? new Color(0.05f, 0.3f, 0.2f, 0.85f) : new Color(0.3f, 0.05f, 0.05f, 0.85f));
