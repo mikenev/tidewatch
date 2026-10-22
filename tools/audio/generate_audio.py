@@ -353,6 +353,15 @@ def ship_move():            # creaking timber, water swish along the hull, riggi
         if i + m < n: x[i:i+m] += .2*bp(noise(m), 1500, 5000)*expd(m, .005)
     return x
 
+# ---------- M3 sfx
+def thunder():              # Storm Isle: sharp crack, then a long rolling, lowpassed rumble with uneven swells
+    n = N(2.2); t = tt(n)
+    crack = hp(noise(n), 1200)*expd(n, .035)*.9 + bp(noise(n), 300, 3000)*expd(n, .08)*.6
+    swell = 1 + .5*np.sin(2*np.pi*1.3*t + 1.) + .3*np.sin(2*np.pi*2.9*t + .4)
+    roll = tvlp(noise(n), 900*expd(n, .5) + 120)*np.clip(t/.12, 0, 1)*expd(n, .75)*np.clip(swell, .2, None)
+    boom = membrane(48, 2.2, 28, .5, .2)*np.clip(t/.05, 0, 1)
+    return crack + 1.4*roll + .6*boom
+
 # ---------- write
 def edge(x, fout=.03):
     x = x - x.mean(); a, b = N(.002), N(fout)
@@ -384,7 +393,8 @@ SFX = dict(cannon_fire=cannon_fire, gunboat_fire=gunboat_fire, ball_hit=ball_hit
            wave_horn=wave_horn, ui_click=ui_click, ui_error=ui_error,
            # M2 (appended last so the shared rng stream, and thus every earlier clip, is unchanged)
            mortar_fire=mortar_fire, mortar_impact=mortar_impact, chainshot_fire=chainshot_fire, net_cast=net_cast,
-           fireraft_explode=fireraft_explode, galleon_horn=galleon_horn, ship_move=ship_move)
+           fireraft_explode=fireraft_explode, galleon_horn=galleon_horn, ship_move=ship_move,
+           thunder=thunder)  # M3, appended last (rng stream for earlier clips unchanged)
 QUIET = {'ui_click': .07, 'ui_error': .08, 'gunboat_fire': .10, 'coin': .09, 'galleon_horn': .10}
 # max length (s): spec (Assets/ART_AUDIO_LIST.md); M2 sounds have no spec length yet, so these are our own lean targets
 LIMITS = {'Music/victory_sting': (2, 4), 'Music/defeat_sting': (2, 4), 'Music/theme_shanty_loop': (30, 60),
@@ -392,7 +402,11 @@ LIMITS = {'Music/victory_sting': (2, 4), 'Music/defeat_sting': (2, 4), 'Music/th
           'SFX/ship_sink': 1.2, 'SFX/harbor_breach': 1., 'SFX/coin': .4, 'SFX/build': .8, 'SFX/upgrade': .8,
           'SFX/sell': .6, 'SFX/wave_horn': (1, 2), 'SFX/ui_click': .15, 'SFX/ui_error': .3,
           'SFX/mortar_fire': .6, 'SFX/mortar_impact': .8, 'SFX/chainshot_fire': .5, 'SFX/net_cast': .65,
-          'SFX/fireraft_explode': 1., 'SFX/galleon_horn': (1.5, 2.), 'SFX/ship_move': .9}
+          'SFX/fireraft_explode': 1., 'SFX/galleon_horn': (1.5, 2.), 'SFX/ship_move': .9,
+          'SFX/thunder': (1.5, 2.5)}
+# clips that are peak-normalized (dBFS) instead of RMS-matched; verify fails if the decoded peak exceeds PEAK_MAX
+PEAK_NORM = {'thunder': -7.0}
+PEAK_MAX = {'SFX/thunder': -6.0}
 
 def main():
     write_ogg(f'{OUT}/Music/theme_shanty_loop.ogg', shanty_theme(), 2)
@@ -401,8 +415,17 @@ def main():
     write_ogg(f'{OUT}/Music/defeat_sting.ogg', sting('defeat'), 3)
     for name, fn in SFX.items():
         x = fn(); x = x[np.argmax(np.abs(x) > 1e-3):]
-        x = edge(loud(edge(x), QUIET.get(name, .12)))
-        write_ogg(f'{OUT}/SFX/{name}.ogg', x, 2)
+        if name in PEAK_NORM:   # quiet ambience (game mix peak already ~0.97): fixed peak, not matched RMS
+            x = edge(x); x = x/np.abs(x).max()*10**(PEAK_NORM[name]/20)
+            path = f'{OUT}/SFX/{name}.ogg'
+            for _ in range(4):   # Vorbis shifts transient peaks; nudge gain until the decoded peak is within 0.1 dB
+                _encode(path, x, 2); pk = decoded_peak_db(path)
+                if abs(pk - PEAK_NORM[name]) <= .1: break
+                x = x*10**((PEAK_NORM[name] - pk)/20)
+            assert pk <= PEAK_MAX[f'SFX/{name}'], (path, pk)
+        else:
+            x = edge(loud(edge(x), QUIET.get(name, .12)))
+            write_ogg(f'{OUT}/SFX/{name}.ogg', x, 2)
 
 def verify():
     """Decode every OGG under OUT; report duration/size/DC/peak/RMS, edges and loop seams. Returns 1 on failure."""
@@ -415,7 +438,7 @@ def verify():
         x = np.frombuffer(subprocess.check_output(['ffmpeg', '-v', 'error', '-i', p, '-f', 'f32le', '-']), '<f4').reshape(-1, ch)
         m = x.mean(1); pk = 20*np.log10(np.abs(x).max())
         s = f"{os.path.relpath(p, OUT):30s} {len(x)/44100:6.3f}s {os.path.getsize(p)/1024:6.1f}KB ch={ch} dc={m.mean():+.5f} peak={pk:5.1f}dBFS rms={np.sqrt(np.mean(m**2)):.3f}"
-        if pk > -1.5: bad = 1; s += ' PEAK!'
+        if pk > PEAK_MAX.get(os.path.relpath(p, OUT)[:-4], -1.5): bad = 1; s += ' PEAK!'
         if '_loop' in p:
             seam = np.abs(x[0]-x[-1]).max(); p99 = np.percentile(np.abs(np.diff(x, axis=0)), 99)
             s += f' seam={seam:.4f} p99step={p99:.4f}' + (' SEAM!' if seam > p99 else '')

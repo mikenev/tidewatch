@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 namespace Tidewatch {
@@ -13,15 +14,17 @@ namespace Tidewatch {
     public float crossfade = 1.2f;
     static bool unlocked;
     public bool Unlocked => unlocked;
-    AudioClip theme, battle; AudioSource musA, musB, sfx, active; AudioClip target;
-    struct Rule { public AudioClip clip; public float vol, minGap; }
+    AudioClip theme, battle; AudioSource musA, musB, sfx, sfxPitched, active; AudioClip target;
+    struct Rule { public AudioClip clip; public float vol, minGap, delayMin, delayMax, pitchJitter; }
     readonly Dictionary<string, Rule> rules = new(); readonly Dictionary<string, float> last = new();
     GameState lastState;
+    readonly System.Random jitter = new();   // own RNG so audio jitter never shifts gameplay's UnityEngine.Random sequence
+    float Jit(float a, float b) => a + (float)jitter.NextDouble() * (b - a);
 
     static AudioClip Clip(string path) => Resources.Load<AudioClip>("Audio/" + path);
     void Awake(){
       I = this;
-      musA = NewSource(true); musB = NewSource(true); sfx = NewSource(false); sfx.volume = 1f; active = musA;   // one-shots scale by PlayOneShot volume; source must be at 1
+      musA = NewSource(true); musB = NewSource(true); sfx = NewSource(false); sfx.volume = 1f; sfxPitched = NewSource(false); sfxPitched.volume = 1f; active = musA;   // one-shots scale by PlayOneShot volume; source must be at 1
       theme = Clip("Music/theme_shanty_loop"); battle = Clip("Music/battle_loop");
       // "a|b": use the first file that exists (dedicated M2 sounds fall back to M1 clips until Audio Dev adds them)
       void R(string id, string files, float v, float gap){ AudioClip c = null; foreach (var f in files.Split('|')) if (!c) c = Clip(f); rules[id] = new Rule{ clip = c, vol = v, minGap = gap }; }
@@ -34,6 +37,8 @@ namespace Tidewatch {
       R("chain_fire", "SFX/chainshot_fire|SFX/cannon_fire", 0.4f, 0.1f); R("net_cast", "SFX/net_cast", 0.4f, 0.8f);
       R("raft_blast", "SFX/fireraft_explode|SFX/harbor_breach", 0.75f, 0.2f); R("galleon_horn", "SFX/galleon_horn|SFX/wave_horn", 0.8f, 1f);
       R("launch", "SFX/galleon_horn|SFX/wave_horn", 0.35f, 0.8f); R("ship_move", "SFX/ship_move|SFX/build", 0.6f, 0.2f);
+      // Storm Isle lightning (Weather.cs): thunder follows the flash after 0.2-0.8 s at pitch 0.9-1.1
+      R("thunder", "SFX/thunder", 0.8f, 1f); var th = rules["thunder"]; th.delayMin = 0.2f; th.delayMax = 0.8f; th.pitchJitter = 0.1f; rules["thunder"] = th;
       R("victory", "Music/victory_sting", 0.8f, 1f); R("defeat", "Music/defeat_sting", 0.8f, 1f);
     }
     AudioSource NewSource(bool loop){ var a = gameObject.AddComponent<AudioSource>(); a.playOnAwake = false; a.loop = loop; a.volume = 0; return a; }
@@ -68,13 +73,27 @@ namespace Tidewatch {
 
     public void Play(string id){
       if (!unlocked || !rules.TryGetValue(id, out var r) || !r.clip) return;
+      if (r.delayMax > 0f){ StartCoroutine(PlayDelayed(id, r)); return; }
+      PlayNow(id, r);
+    }
+
+    IEnumerator PlayDelayed(string id, Rule r){
+      yield return new WaitForSecondsRealtime(Jit(r.delayMin, r.delayMax));
+      if (unlocked) PlayNow(id, r);
+    }
+
+    void PlayNow(string id, Rule r){
       float now = Time.unscaledTime;
       if (last.TryGetValue(id, out var t) && now - t < r.minGap) return;
       voices.RemoveAll(v => v.end <= now);
       int same = 0; foreach (var v in voices) if (v.clip == r.clip) same++;
       if (same >= MaxSame || voices.Count >= MaxTotal) return;
-      voices.Add((now + r.clip.length, r.clip));
-      last[id] = now; sfx.PlayOneShot(r.clip, r.vol * sfxVolume);
+      float pitch = r.pitchJitter > 0f ? Jit(1f - r.pitchJitter, 1f + r.pitchJitter) : 1f;
+      voices.Add((now + r.clip.length / pitch, r.clip));
+      last[id] = now;
+      // pitched one-shots get their own source so the shared sfx source stays at pitch 1
+      var src = r.pitchJitter > 0f ? sfxPitched : sfx; src.pitch = pitch;
+      src.PlayOneShot(r.clip, r.vol * sfxVolume);
     }
   }
 }
